@@ -200,7 +200,7 @@ package starling.core
         private var mEnableErrorChecking:Boolean;
         private var mLastFrameTimestamp:Number;
         private var mLeftMouseDown:Boolean;
-        private var mStatsDisplay:StatsDisplay;
+        public var mStatsDisplay:StatsDisplay;
         private var mShareContext:Boolean;
         private var mProfile:String;
         private var mContext:Context3D;
