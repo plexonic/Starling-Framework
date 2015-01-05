@@ -1,7 +1,7 @@
 // =================================================================================================
 //
 //	Starling Framework
-//	Copyright 2011 Gamua OG. All Rights Reserved.
+//	Copyright 2011-2014 Gamua. All Rights Reserved.
 //
 //	This program is free software. You can redistribute and/or modify it
 //	in accordance with the terms of the accompanying license agreement.
@@ -83,11 +83,11 @@ package starling.text
     {
         // the name container with the registered bitmap fonts
         private static const BITMAP_FONT_DATA_NAME:String = "starling.display.TextField.BitmapFonts";
-
+        
         // the texture format that is used for TTF rendering
         private static var sDefaultTextureFormat:String =
-                        "BGRA_PACKED" in Context3DTextureFormat ? "bgraPacked4444" : "bgra";
-        
+            "BGRA_PACKED" in Context3DTextureFormat ? "bgraPacked4444" : "bgra";
+
         protected var mFontSize:Number;
         protected var mColor:uint;
         protected var mText:String;
@@ -103,15 +103,16 @@ package starling.text
         protected var mNativeFilters:Array;
         protected var mRequiresRedraw:Boolean;
         private var mIsRenderedText:Boolean;
+        private var mIsHtmlText:Boolean;
         protected var mTextBounds:Rectangle;
         protected var mBatchable:Boolean;
-
+        
         protected var mHitArea:Rectangle;
         private var mBorder:DisplayObjectContainer;
-
+        
         protected var mImage:Image;
         protected var mQuadBatch:QuadBatch;
-
+        
         /** Helper objects. */
         private static var sHelperMatrix:Matrix = new Matrix();
         protected static var sNativeTextField:flash.text.TextField = new flash.text.TextField();
@@ -183,23 +184,28 @@ package starling.text
             if (mTextBounds == null) 
                 mTextBounds = new Rectangle();
             
-            var scale:Number  = Starling.contentScaleFactor;
+            var texture:Texture;
+            var scale:Number = Starling.contentScaleFactor;
             var bitmapData:BitmapData = renderText(scale, mTextBounds);
             var format:String = sDefaultTextureFormat;
             
             mHitArea.width  = bitmapData.width  / scale;
             mHitArea.height = bitmapData.height / scale;
             
-            var texture:Texture = Texture.fromBitmapData(bitmapData, false, false, scale, format);
+            texture = Texture.fromBitmapData(bitmapData, false, false, scale, format);
             texture.root.onRestore = function():void
             {
                 if (mTextBounds == null)
                     mTextBounds = new Rectangle();
-                
+
+                bitmapData = renderText(scale, mTextBounds);
                 texture.root.uploadBitmapData(renderText(scale, mTextBounds));
+                bitmapData.dispose();
+                bitmapData = null;
             };
             
             bitmapData.dispose();
+            bitmapData = null;
             
             if (mImage == null) 
             {
@@ -221,12 +227,12 @@ package starling.text
          *  over a range of characters or the complete TextField) to modify the format to
          *  your needs.
          *  
-         *  @param textField:  the flash.text.TextField object that you can format.
-         *  @param textFormat: the default text format that's currently set on the text field.
+         *  @param textField  the flash.text.TextField object that you can format.
+         *  @param textFormat the default text format that's currently set on the text field.
          */
         protected function formatText(textField:flash.text.TextField, textFormat:TextFormat):void {}
 
-        protected function renderText(scale:Number, resultTextBounds:Rectangle):BitmapData
+        private function renderText(scale:Number, resultTextBounds:Rectangle):BitmapData
         {
             var width:Number  = mHitArea.width  * scale;
             var height:Number = mHitArea.height * scale;
@@ -254,8 +260,11 @@ package starling.text
             sNativeTextField.antiAliasType = AntiAliasType.ADVANCED;
             sNativeTextField.selectable = false;            
             sNativeTextField.multiline = true;            
-            sNativeTextField.wordWrap = true;            
-            sNativeTextField.text = mText;
+            sNativeTextField.wordWrap = true;         
+
+            if (mIsHtmlText) sNativeTextField.htmlText = mText;
+            else             sNativeTextField.text     = mText;
+               
             sNativeTextField.embedFonts = true;
             sNativeTextField.filters = mNativeFilters;
             
@@ -318,7 +327,7 @@ package starling.text
             
             return bitmapData;
         }
-
+        
         protected function autoScaleNativeTextField(textField:flash.text.TextField):void
         {
             var size:Number   = Number(textField.defaultTextFormat.size);
@@ -468,7 +477,7 @@ package starling.text
             return mAutoSize == TextFieldAutoSize.HORIZONTAL || 
                    mAutoSize == TextFieldAutoSize.BOTH_DIRECTIONS;
         }
-
+        
         protected function get isVerticalAutoSize():Boolean
         {
             return mAutoSize == TextFieldAutoSize.VERTICAL || 
@@ -699,16 +708,29 @@ package starling.text
             if (mQuadBatch) mQuadBatch.batchable = value;
         }
 
-        /** The native Flash BitmapFilters to apply to this TextField. 
-         *  Only available when using standard (TrueType) fonts! */
+        /** The native Flash BitmapFilters to apply to this TextField.
+         *
+         *  <p>BEWARE: this property is ignored when using bitmap fonts!</p> */
         public function get nativeFilters():Array { return mNativeFilters; }
         public function set nativeFilters(value:Array) : void
         {
-            if (!mIsRenderedText)
-                throw(new Error("The TextField.nativeFilters property cannot be used on Bitmap fonts."));
-            
             mNativeFilters = value.concat();
             mRequiresRedraw = true;
+        }
+
+        /** Indicates if the assigned text should be interpreted as HTML code. For a description
+         *  of the supported HTML subset, refer to the classic Flash 'TextField' documentation.
+         *  Clickable hyperlinks and external images are not supported.
+         *
+         *  <p>BEWARE: this property is ignored when using bitmap fonts!</p> */
+        public function get isHtmlText():Boolean { return mIsHtmlText; }
+        public function set isHtmlText(value:Boolean):void
+        {
+            if (mIsHtmlText != value)
+            {
+                mIsHtmlText = value;
+                mRequiresRedraw = true;
+            }
         }
         
         /** The Context3D texture format that is used for rendering of all TrueType texts.
