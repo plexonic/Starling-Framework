@@ -189,12 +189,12 @@ package starling.core
         // members
         
         private var mStage3D:Stage3D;
-        protected var mStage:Stage; // starling.display.stage!
+        private var mStage:Stage; // starling.display.stage!
         private var mRootClass:Class;
         private var mRoot:DisplayObject;
         private var mJuggler:Juggler;
         private var mSupport:RenderSupport;
-        protected var mTouchProcessor:TouchProcessor;
+        private var mTouchProcessor:TouchProcessor;
         private var mAntiAliasing:int;
         private var mSimulateMultitouch:Boolean;
         private var mEnableErrorChecking:Boolean;
