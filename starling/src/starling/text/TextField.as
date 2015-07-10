@@ -107,6 +107,7 @@ package starling.text
         protected var mAutoScale:Boolean;
         protected var mAutoSize:String;
         protected var mKerning:Boolean;
+        protected var mLeading:Number;
         protected var mNativeFilters:Array;
         protected var mRequiresRedraw:Boolean;
         private var mIsHtmlText:Boolean;
