@@ -11,7 +11,8 @@
 package starling.utils
 {
     import flash.display.Bitmap;
-    import flash.display.Loader;
+import flash.display.BitmapData;
+import flash.display.Loader;
     import flash.display.LoaderInfo;
     import flash.events.HTTPStatusEvent;
     import flash.events.IOErrorEvent;
@@ -42,6 +43,7 @@ package starling.utils
     import starling.textures.Texture;
     import starling.textures.TextureAtlas;
     import starling.textures.TextureOptions;
+    import sineysoft.WebpSwc;
     
     /** Dispatched when all textures have been restored after a context loss. */
     [Event(name="texturesRestored", type="starling.events.Event")]
@@ -756,7 +758,7 @@ package starling.utils
                 }, 1);
             }
         }
-        
+
         private function processRawAsset(name:String, rawAsset:Object, options:TextureOptions,
                                          xmls:Vector.<XML>,
                                          onProgress:Function, onComplete:Function):void
@@ -772,7 +774,7 @@ package starling.utils
                 var bytes:ByteArray;
                 var object:Object = null;
                 var xml:XML = null;
-                
+
                 // the 'current' instance might have changed by now
                 // if we're running in a set-up with multiple instances.
                 mStarling.makeCurrent();
@@ -1040,6 +1042,10 @@ package starling.utils
                         loaderInfo.addEventListener(IOErrorEvent.IO_ERROR, onIoError);
                         loaderInfo.addEventListener(Event.COMPLETE, onLoaderComplete);
                         loader.loadBytes(bytes, loaderContext);
+                        break;
+                    case "webp":
+                        var bd : BitmapData = WebpSwc.decode(bytes as ByteArray);
+                        complete(new Bitmap(bd));
                         break;
                     default: // any XML / JSON / binary data 
                         complete(bytes);
