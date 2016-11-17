@@ -33,8 +33,10 @@ import flash.display.Loader;
     import flash.utils.describeType;
     import flash.utils.getQualifiedClassName;
     import flash.utils.setTimeout;
-    
-    import starling.core.Starling;
+
+import libwebp.DecodeWebp;
+
+import starling.core.Starling;
     import starling.events.Event;
     import starling.events.EventDispatcher;
     import starling.text.BitmapFont;
@@ -43,7 +45,6 @@ import flash.display.Loader;
     import starling.textures.Texture;
     import starling.textures.TextureAtlas;
     import starling.textures.TextureOptions;
-    import sineysoft.WebpSwc;
     
     /** Dispatched when all textures have been restored after a context loss. */
     [Event(name="texturesRestored", type="starling.events.Event")]
@@ -1044,7 +1045,7 @@ import flash.display.Loader;
                         loader.loadBytes(bytes, loaderContext);
                         break;
                     case "webp":
-                        var bd : BitmapData = WebpSwc.decode(bytes as ByteArray);
+                        var bd : BitmapData = DecodeWebp(bytes as ByteArray);
                         complete(new Bitmap(bd));
                         break;
                     default: // any XML / JSON / binary data 
