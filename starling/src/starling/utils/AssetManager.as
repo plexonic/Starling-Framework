@@ -120,7 +120,7 @@ import starling.core.Starling;
     public class AssetManager extends EventDispatcher
     {
         // This HTTPStatusEvent is only available in AIR
-        private static const HTTP_RESPONSE_STATUS:String = "httpResponseStatus";
+        public static const HTTP_RESPONSE_STATUS:String = "httpResponseStatus";
 
         private var mStarling:Starling;
         private var mNumLostTextures:int;
@@ -128,7 +128,7 @@ import starling.core.Starling;
         private var mNumLoadingQueues:int;
 
         private var mDefaultTextureOptions:TextureOptions;
-        private var mCheckPolicyFile:Boolean;
+        protected var mCheckPolicyFile:Boolean;
         private var mKeepAtlasXmls:Boolean;
         private var mKeepFontXmls:Boolean;
         private var mNumConnections:int;
@@ -1019,7 +1019,7 @@ import starling.core.Starling;
                     complete(null);
                     return;
                 }
-                
+
                 if (extension)
                     extension = extension.toLowerCase();
 
@@ -1048,7 +1048,7 @@ import starling.core.Starling;
                         var bd : BitmapData = DecodeWebp(bytes as ByteArray);
                         complete(new Bitmap(bd));
                         break;
-                    default: // any XML / JSON / binary data 
+                    default: // any XML / JSON / binary data
                         complete(bytes);
                         break;
                 }
@@ -1188,7 +1188,7 @@ import starling.core.Starling;
             return result;
         }
         
-        private function getHttpHeader(headers:Array, headerName:String):String
+        protected function getHttpHeader(headers:Array, headerName:String):String
         {
             if (headers)
             {
