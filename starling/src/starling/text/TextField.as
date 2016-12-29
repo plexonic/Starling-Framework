@@ -93,7 +93,7 @@ package starling.text
 
         private var _text:String;
         private var _options:TextOptions;
-        private var _format:TextFormat;
+        protected var _format:TextFormat;
         private var _textBounds:Rectangle;
         private var _hitArea:Rectangle;
         private var _compositor:ITextCompositor;
