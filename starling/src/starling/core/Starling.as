@@ -1023,6 +1023,10 @@ package starling.core
         {
             return sCurrent ? sCurrent._frameID : 0;
         }
+
+        public function get statsDisplay():StatsDisplay {
+            return _statsDisplay;
+        }
     }
 }
 

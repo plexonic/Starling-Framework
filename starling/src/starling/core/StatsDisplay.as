@@ -156,5 +156,9 @@ package starling.core
         /** The currently used graphics memory in MB. */
         public function get gpuMemory():Number { return _gpuMemory; }
         public function set gpuMemory(value:Number):void { _gpuMemory = value; }
+
+        public function get background():Quad {
+            return _background;
+        }
     }
 }
