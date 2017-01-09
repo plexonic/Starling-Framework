@@ -207,7 +207,7 @@ package starling.text
 
         /** Creates a sprite that contains a certain text, made up by one image per char. */
         public function createSprite(width:Number, height:Number, text:String,
-                                     format:TextFormat, options:TextOptions=null):Sprite
+                                     format:TextFormat, options:TextOptions=null, skipColor:Boolean = false):Sprite
         {
             var charLocations:Vector.<CharLocation> = arrangeChars(width, height, text, format, options);
             var numChars:int = charLocations.length;
@@ -221,7 +221,10 @@ package starling.text
                 char.x = charLocation.x;
                 char.y = charLocation.y;
                 char.scale = charLocation.scale;
-                char.color = format.color;
+
+                if(!skipColor){
+                    char.color = format.color;
+                }
                 char.textureSmoothing = smoothing;
                 sprite.addChild(char);
             }
