@@ -44,6 +44,7 @@ package starling.core
     import starling.events.TouchProcessor;
     import starling.rendering.Painter;
     import starling.utils.Align;
+    import starling.utils.Color;
     import starling.utils.RectangleUtil;
     import starling.utils.SystemUtil;
 
@@ -195,7 +196,7 @@ package starling.core
     public class Starling extends EventDispatcher
     {
         /** The version of the Starling framework. */
-        public static const VERSION:String = "2.1.1";
+        public static const VERSION:String = "2.2";
         
         // members
         
@@ -299,8 +300,16 @@ package starling.core
             
             stage3D.addEventListener(Event.CONTEXT3D_CREATE, onContextCreated, false, 10, true);
             stage3D.addEventListener(ErrorEvent.ERROR, onStage3DError, false, 10, true);
-            
-            if (_painter.shareContext)
+
+            var runtimeVersion:int = parseInt(SystemUtil.version.split(",").shift());
+            if (runtimeVersion < 19)
+            {
+                var runtime:String = SystemUtil.isAIR ? "Adobe AIR" : "Flash Player";
+                stopWithFatalError(
+                    "Your " + runtime + " installation is outdated. " +
+                    "This software requires at least version 19.");
+            }
+            else if (_painter.shareContext)
             {
                 setTimeout(initialize, 1); // we don't call it right away, because Starling should
                                            // behave the same way with or without a shared context
@@ -332,8 +341,8 @@ package starling.core
                 _nativeStage.removeEventListener(touchEventType, onTouch, false);
 
             _touchProcessor.dispose();
-            _painter.dispose();
             _stage.dispose();
+            _painter.dispose();
 
             var index:int =  sAll.indexOf(this);
             if (index != -1) sAll.removeAt(index);
@@ -420,6 +429,7 @@ package starling.core
                 var shareContext:Boolean = _painter.shareContext;
                 var scaleX:Number = _viewPort.width  / _stage.stageWidth;
                 var scaleY:Number = _viewPort.height / _stage.stageHeight;
+                var stageColor:uint = _stage.color;
 
                 _painter.nextFrame();
                 _painter.pixelSize = 1.0 / contentScaleFactor;
@@ -431,7 +441,7 @@ package starling.core
                     _stage.stageWidth, _stage.stageHeight, _stage.cameraPosition);
 
                 if (!shareContext)
-                    _painter.clear(_stage.color, 0.0);
+                    _painter.clear(stageColor, Color.getAlpha(stageColor));
 
                 _stage.render(_painter);
                 _painter.finishFrame();
@@ -922,8 +932,12 @@ package starling.core
          *  uses the same render context. If enabled, Starling will not execute any destructive
          *  context operations (e.g. not call 'configureBackBuffer', 'clear', 'present', etc.
          *  This has to be done manually, then. @default false */
-        public function get shareContext() : Boolean { return _painter.shareContext; }
-        public function set shareContext(value : Boolean) : void { _painter.shareContext = value; }
+        public function get shareContext():Boolean { return _painter.shareContext; }
+        public function set shareContext(value:Boolean):void
+        {
+            if (!value) _previousViewPort.setEmpty(); // forces back buffer update
+            _painter.shareContext = value;
+        }
 
         /** The Context3D profile of the current render context, or <code>null</code>
          *  if the context has not been created yet. */

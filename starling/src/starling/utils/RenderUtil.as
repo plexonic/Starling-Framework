@@ -42,7 +42,8 @@ package starling.utils
                     Color.getRed(rgb)   / 255.0,
                     Color.getGreen(rgb) / 255.0,
                     Color.getBlue(rgb)  / 255.0,
-                    alpha);
+                    alpha, 1, 127
+             );
         }
 
         /** Returns the flags that are required for AGAL texture lookup,

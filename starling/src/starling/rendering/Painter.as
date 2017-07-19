@@ -76,6 +76,7 @@ package starling.rendering
     {
         // the key for the programs stored in 'sharedData'
         private static const PROGRAM_DATA_NAME:String = "starling.rendering.Painter.Programs";
+        private static const DEFAULT_STENCIL_VALUE:uint = 127;
 
         // members
 
@@ -99,6 +100,8 @@ package starling.rendering
         private var _actualRenderTargetOptions:uint;
         private var _actualCulling:String;
         private var _actualBlendMode:String;
+        private var _actualDepthMask:Boolean;
+        private var _actualDepthTest:String;
 
         private var _backBufferWidth:Number;
         private var _backBufferHeight:Number;
@@ -190,10 +193,6 @@ package starling.rendering
         {
             _context = _stage3D.context3D;
             _context.enableErrorChecking = _enableErrorChecking;
-            _context.setDepthTest(false, Context3DCompareMode.ALWAYS);
-
-            _actualBlendMode = null;
-            _actualCulling = null;
         }
 
         /** Sets the viewport dimensions and other attributes of the rendering buffer.
@@ -353,12 +352,15 @@ package starling.rendering
 
         // masks
 
-        /** Draws a display object into the stencil buffer, incrementing the buffer on each
-         *  used pixel. The stencil reference value is incremented as well; thus, any subsequent
-         *  stencil tests outside of this area will fail.
+        /** Draws a display object into the stencil buffer only; increments or decrements the
+         *  entry value corresponding to the pixel of the shape in the stencil buffer, for the
+         *  normal or inverted mask modes, respectively. Effectively, the stencil buffer
+         *  modification is to mark only the appropriate pixel coordinates where the 'maskee'
+         *  object is to be rendered.<br>
+         *  The stencil reference value will be incremented in the normal mask mode only.
          *
-         *  <p>If 'mask' is part of the display list, it will be drawn at its conventional stage
-         *  coordinates. Otherwise, it will be drawn with the current modelview matrix.</p>
+         *  <p>If the 'mask' is part of the display list, it will be drawn at its conventional
+         *  stage coordinates. Otherwise, it will be drawn with the current modelview matrix.</p>
          *
          *  <p>As an optimization, this method might update the clipping rectangle of the render
          *  state instead of utilizing the stencil buffer. This is possible when the mask object
@@ -383,22 +385,41 @@ package starling.rendering
             }
             else
             {
-                _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
-                    Context3DCompareMode.EQUAL, Context3DStencilAction.INCREMENT_SATURATE);
+                // In 'renderMask', we'll make sure the depth test always fails. Thus, the 3rd
+                // parameter of 'setStencilActions' will always be ignored; the 4th is the one
+                // that counts!
 
-                renderMask(mask);
-                stencilReferenceValue++;
+                if (maskee && maskee.maskInverted)
+                {
+                    _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
+                        Context3DCompareMode.ALWAYS, Context3DStencilAction.KEEP,
+                        Context3DStencilAction.DECREMENT_SATURATE);
 
-                _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
-                    Context3DCompareMode.EQUAL, Context3DStencilAction.KEEP);
+                    renderMask(mask);
+                }
+                else
+                {
+                    _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
+                        Context3DCompareMode.EQUAL, Context3DStencilAction.KEEP,
+                        Context3DStencilAction.INCREMENT_SATURATE);
+
+                    renderMask(mask);
+                    stencilReferenceValue++;
+                }
+
+                _context.setStencilActions(
+                    Context3DTriangleFace.FRONT_AND_BACK, Context3DCompareMode.EQUAL);
             }
 
             excludeFromCache(maskee);
         }
 
-        /** Draws a display object into the stencil buffer, decrementing the
-         *  buffer on each used pixel. This effectively erases the object from the stencil buffer,
-         *  restoring the previous state. The stencil reference value will be decremented.
+        /** Draws a display object into the stencil buffer only; increments or decrements the
+         *  entry value corresponding to the pixel of the shape in the stencil buffer, for the
+         *  inverted or normal mask modes, respectively. Effectively, The stencil buffer
+         *  modification is to erase the object shape from the stencil buffer, restoring the
+         *  previous state.<br>
+         *  The stencil reference value will be decremented in the normal mask mode only.
          *
          *  <p>Note: if the mask object meets the requirements of using the clipping rectangle,
          *  it will be assumed that this erase operation undoes the clipping rectangle change
@@ -416,28 +437,45 @@ package starling.rendering
             }
             else
             {
-                _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
-                    Context3DCompareMode.EQUAL, Context3DStencilAction.DECREMENT_SATURATE);
+                // In 'renderMask', we'll make sure the depth test always fails. Thus, the 3rd
+                // parameter of 'setStencilActions' will always be ignored; the 4th is the one
+                // that counts!
 
-                renderMask(mask);
-                stencilReferenceValue--;
+                if (maskee && maskee.maskInverted)
+                {
+                    _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
+                        Context3DCompareMode.ALWAYS, Context3DStencilAction.KEEP,
+                        Context3DStencilAction.INCREMENT_SATURATE);
 
-                _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
-                    Context3DCompareMode.EQUAL, Context3DStencilAction.KEEP);
+                    renderMask(mask);
+                }
+                else
+                {
+                    _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
+                        Context3DCompareMode.EQUAL, Context3DStencilAction.KEEP,
+                        Context3DStencilAction.DECREMENT_SATURATE);
+
+                    renderMask(mask);
+                    stencilReferenceValue--;
+                }
+
+                // restore default stencil action ("keep")
+
+                _context.setStencilActions(
+                    Context3DTriangleFace.FRONT_AND_BACK, Context3DCompareMode.EQUAL);
             }
         }
 
         private function renderMask(mask:DisplayObject):void
         {
+            var matrix:Matrix = null;
+            var matrix3D:Matrix3D = null;
             var wasCacheEnabled:Boolean = cacheEnabled;
 
             pushState();
             cacheEnabled = false;
-            _state.alpha = 0.0;
-
-            var matrix:Matrix = null;
-            var matrix3D:Matrix3D = null;
-
+            _state.depthTest = Context3DCompareMode.NEVER; // depth test always fails ->
+                                                           // color buffer won't be modified
             if (mask.stage)
             {
                 _state.setModelviewMatricesToIdentity();
@@ -496,9 +534,10 @@ package starling.rendering
         private function isRectangularMask(mask:DisplayObject, maskee:DisplayObject, out:Matrix):Boolean
         {
             var quad:Quad = mask as Quad;
+            var isInverted:Boolean = maskee && maskee.maskInverted;
             var is3D:Boolean = mask.is3D || (maskee && maskee.is3D && mask.stage == null);
 
-            if (quad && !is3D && quad.texture == null)
+            if (quad && !isInverted && !is3D && quad.texture == null)
             {
                 if (mask.stage) mask.getTransformationMatrix(null, out);
                 else
@@ -552,6 +591,16 @@ package starling.rendering
             _batchCacheExclusions.length = 0;
         }
 
+        /** Makes sure that the default context settings Starling relies on will be refreshed
+         *  before the next 'draw' operation. This includes blend mode, culling, and depth test. */
+        public function setupContextDefaults():void
+        {
+            _actualBlendMode = null;
+            _actualCulling = null;
+            _actualDepthMask = false;
+            _actualDepthTest = null;
+        }
+
         /** Resets the current state, state stack, batch processor, stencil reference value,
          *  clipping rectangle, and draw count. Furthermore, depth testing is disabled. */
         public function nextFrame():void
@@ -561,13 +610,10 @@ package starling.rendering
             _batchProcessor.clear();
             _batchProcessorSpec.clear();
 
-            // enforce reset of basic context settings
-            _actualBlendMode = null;
-            _actualCulling = null;
-            _context.setDepthTest(false, Context3DCompareMode.ALWAYS);
+            setupContextDefaults();
 
             // reset everything else
-            stencilReferenceValue = 0;
+            stencilReferenceValue = DEFAULT_STENCIL_VALUE;
             _clipRectStack.length = 0;
             _drawCount = 0;
             _stateStackPos = -1;
@@ -662,6 +708,7 @@ package starling.rendering
             applyRenderTarget();
             applyClipRect();
             applyCulling();
+            applyDepthTest();
         }
 
         /** Clears the render context with a certain color and alpha value. Since this also
@@ -669,7 +716,7 @@ package starling.rendering
         public function clear(rgb:uint=0, alpha:Number=0.0):void
         {
             applyRenderTarget();
-            stencilReferenceValue = 0;
+            stencilReferenceValue = DEFAULT_STENCIL_VALUE;
             RenderUtil.clear(rgb, alpha);
         }
 
@@ -700,6 +747,19 @@ package starling.rendering
             {
                 _context.setCulling(culling);
                 _actualCulling = culling;
+            }
+        }
+
+        private function applyDepthTest():void
+        {
+            var depthMask:Boolean = _state.depthMask;
+            var depthTest:String = _state.depthTest;
+
+            if (depthMask != _actualDepthMask || depthTest != _actualDepthTest)
+            {
+                _context.setDepthTest(depthMask, depthTest);
+                _actualDepthMask = depthMask;
+                _actualDepthTest = depthTest;
             }
         }
 

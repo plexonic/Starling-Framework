@@ -34,6 +34,7 @@ package starling.textures
     import starling.utils.MathUtil;
     import starling.utils.MatrixUtil;
     import starling.utils.SystemUtil;
+    import starling.utils.execute;
 
     /** <p>A texture stores the information that represents an image. It cannot be added to the
      *  display list directly; instead it has to be mapped onto a display object. In Starling,
@@ -332,13 +333,9 @@ package starling.textures
             var texture:Texture = Texture.empty(data.width / scale, data.height / scale, true,
                                                 generateMipMaps, optimizeForRenderToTexture, scale,
                                                 format, forcePotTexture);
-
-            texture.root.uploadBitmapData(data, async);
-            texture.root.onRestore = function():void
-            {
-                texture.root.uploadBitmapData(data);
-            };
-
+            texture.root.uploadBitmapData(data,
+                async != null ? function():void { execute(async, texture); } : null);
+            texture.root.onRestore = function():void { texture.root.uploadBitmapData(data); };
             return texture;
         }
 
@@ -763,6 +760,24 @@ package starling.textures
                 return 2048;
             else
                 return 4096;
+        }
+
+        /** Indicates if it should be attempted to upload bitmaps asynchronously when the <code>async</code> parameter
+         *  is supplied to supported methods. Since this feature is still not 100% reliable in AIR 26 (especially on
+         *  Android), it defaults to 'false' for now.
+         *
+         *  <p>If the feature is disabled or not available in the current AIR/Flash runtime, the async callback will
+         *  still be executed; however, the upload itself will be made synchronously.</p>
+         */
+        public static function get asyncBitmapUploadEnabled():Boolean
+        {
+            return ConcreteRectangleTexture.asyncUploadEnabled;
+        }
+
+        public static function set asyncBitmapUploadEnabled(value:Boolean):void
+        {
+            ConcreteRectangleTexture.asyncUploadEnabled = value;
+            ConcretePotTexture.asyncUploadEnabled = value;
         }
     }
 }

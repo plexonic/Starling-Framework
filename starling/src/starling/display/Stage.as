@@ -111,50 +111,6 @@ package starling.display
             return target ? target : this;
         }
         
-        /** Draws the complete stage into a BitmapData object.
-         *
-         *  <p>If you encounter problems with transparency, start Starling in BASELINE profile
-         *  (or higher). BASELINE_CONSTRAINED might not support transparency on all platforms.
-         *  </p>
-         *
-         *  @param destination  If you pass null, the object will be created for you.
-         *                      If you pass a BitmapData object, it should have the size of the
-         *                      back buffer (which is accessible via the respective properties
-         *                      on the Starling instance).
-         *  @param transparent  If enabled, empty areas will appear transparent; otherwise, they
-         *                      will be filled with the stage color.
-         */
-        public function drawToBitmapData(destination:BitmapData=null,
-                                         transparent:Boolean=true):BitmapData
-        {
-            var painter:Painter = Starling.painter;
-            var state:RenderState = painter.state;
-            var context:Context3D = painter.context;
-
-            if (destination == null)
-            {
-                var width:int  = context.backBufferWidth;
-                var height:int = context.backBufferHeight;
-                destination = new BitmapData(width, height, transparent);
-            }
-
-            painter.pushState();
-            state.renderTarget = null;
-            state.setProjectionMatrix(0, 0, _width, _height, _width, _height, cameraPosition);
-            
-            if (transparent) painter.clear();
-            else             painter.clear(_color, 1);
-            
-            render(painter);
-            painter.finishMeshBatch();
-
-            context.drawToBitmapData(destination);
-            context.present(); // required on some platforms to avoid flickering
-
-            painter.popState();
-            return destination;
-        }
-
         /** Returns the stage bounds (i.e. not the bounds of its contents, but the rectangle
          *  spawned up by 'stageWidth' and 'stageHeight') in another coordinate system. */
         public function getStageBounds(targetSpace:DisplayObject, out:Rectangle=null):Rectangle
@@ -274,7 +230,10 @@ package starling.display
             throw new IllegalOperationError("Cannot add filter to stage. Add it to 'root' instead!");
         }
         
-        /** The background color of the stage. */
+        /** The background color of the stage.
+         *  When Starling clears the render context (which happens automatically once per frame),
+         *  it will use this this color. Note that it's actually an 'ARGB' value: if you need
+         *  the context to be cleared with a specific alpha value, include it in the color. */
         public function get color():uint { return _color; }
         public function set color(value:uint):void { _color = value; }
         
@@ -318,6 +277,7 @@ package starling.display
         public function set focalLength(value:Number):void
         {
             _fieldOfView = 2 * Math.atan(stageWidth / (2*value));
+            setRequiresRedraw();
         }
 
         /** Specifies an angle (radian, between zero and PI) for the field of view. This value
@@ -331,7 +291,11 @@ package starling.display
          *  @default 1.0
          */
         public function get fieldOfView():Number { return _fieldOfView; }
-        public function set fieldOfView(value:Number):void { _fieldOfView = value; }
+        public function set fieldOfView(value:Number):void
+        {
+            _fieldOfView = value;
+            setRequiresRedraw();
+        }
 
         /** A vector that moves the camera away from its default position in the center of the
          *  stage. Use this property to change the center of projection, i.e. the vanishing
@@ -341,6 +305,7 @@ package starling.display
         public function set projectionOffset(value:Point):void
         {
             _projectionOffset.setTo(value.x, value.y);
+            setRequiresRedraw();
         }
 
         /** The global position of the camera. This property can only be used to find out the
