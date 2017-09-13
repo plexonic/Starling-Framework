@@ -256,6 +256,33 @@ package starling.text
             CharLocation.rechargePool();
         }
 
+        /** Draws text into a QuadBatch. */
+        public function fillIntoMeshBatch(meshBatch:MeshBatch, width:Number, height:Number, text:String,
+                                          format:TextFormat, options:TextOptions=null,skipColor:Boolean = false,
+                                          x:Number = 0.0, y:Number = 0.0 ):void
+        {
+            var charLocations:Vector.<CharLocation> = arrangeChars(
+                    width, height, text, format, options);
+            var numChars:int = charLocations.length;
+
+            if(!skipColor){
+                _helperImage.color = format.color;
+            }
+
+            for (var i:int=0; i<numChars; ++i)
+            {
+                var charLocation:CharLocation = charLocations[i];
+                _helperImage.texture = charLocation.char.texture;
+                _helperImage.readjustSize();
+                _helperImage.x = charLocation.x + x;
+                _helperImage.y = charLocation.y + y;
+                _helperImage.scale = charLocation.scale;
+                meshBatch.addMesh(_helperImage);
+            }
+
+            CharLocation.rechargePool();
+        }
+
         /** @inheritDoc */
         public function clearMeshBatch(meshBatch:MeshBatch):void
         {
