@@ -36,6 +36,8 @@ package starling.utils
         private static var sMatrices3D:Vector.<Matrix3D> = new <Matrix3D>[];
         private static var sRectangles:Vector.<Rectangle> = new <Rectangle>[];
 
+
+
         /** @private */
         public function Pool() { throw new AbstractClassError(); }
 
