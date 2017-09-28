@@ -21,7 +21,9 @@ package starling.rendering
     import flash.utils.ByteArray;
     import flash.utils.Endian;
 
-    import starling.core.Starling;
+import plexonic.memory.FastByteArray;
+
+import starling.core.Starling;
     import starling.errors.MissingContextError;
     import starling.styles.MeshStyle;
     import starling.utils.MathUtil;
@@ -103,7 +105,7 @@ package starling.rendering
      */
     public class VertexData
     {
-        private var _rawData:ByteArray;
+        private var _rawData:FastByteArray;
         private var _numVertices:int;
         private var _format:VertexDataFormat;
         private var _attributes:Vector.<VertexDataAttribute>;
@@ -158,16 +160,16 @@ package starling.rendering
             _vertexSize = _format.vertexSize;
             _numVertices = 0;
             _premultipliedAlpha = true;
-            _rawData = new ByteArray();
-            _rawData.endian = sBytes.endian = Endian.LITTLE_ENDIAN;
-            _rawData.length = initialCapacity * _vertexSize; // just for the initial allocation
-            _rawData.length = 0;                             // changes length, but not memory!
+            _rawData = new FastByteArray(initialCapacity * _vertexSize);
+//            _rawData.endian = sBytes.endian = Endian.LITTLE_ENDIAN;
+//            _rawData.length = initialCapacity * _vertexSize; // just for the initial allocation
+//            _rawData.length = 0;                             // changes length, but not memory!
         }
 
         /** Explicitly frees up the memory used by the ByteArray. */
         public function clear():void
         {
-            _rawData.clear();
+            _rawData.dispose();
             _numVertices = 0;
             _tinted = false;
         }
@@ -215,7 +217,7 @@ package starling.rendering
                 // In this case, it's fastest to copy the complete range in one call
                 // and then overwrite only the transformed positions.
 
-                var targetRawData:ByteArray = target._rawData;
+                var targetRawData:FastByteArray = target._rawData;
                 targetRawData.position = targetVertexID * _vertexSize;
                 targetRawData.writeBytes(_rawData, vertexID * _vertexSize, numVertices * _vertexSize);
 
