@@ -120,7 +120,7 @@ import starling.core.Starling;
         // helper objects
         private static var sHelperPoint:Point = new Point();
         private static var sHelperPoint3D:Vector3D = new Vector3D();
-        private static var sBytes:ByteArray = new ByteArray();
+        private static var sBytes:FastByteArray = new FastByteArray(0);
 
         /** Creates an empty VertexData object with the given format and initial capacity.
          *
@@ -218,22 +218,56 @@ import starling.core.Starling;
                 // and then overwrite only the transformed positions.
 
                 var targetRawData:FastByteArray = target._rawData;
-                targetRawData.position = targetVertexID * _vertexSize;
-                targetRawData.writeBytes(_rawData, vertexID * _vertexSize, numVertices * _vertexSize);
+                targetRawData.overwriteBytesAt(targetVertexID * _vertexSize, _rawData, vertexID * _vertexSize, numVertices * _vertexSize);
+
+                function copyTransformedTo(param1:VertexData, param2:int = 0, matrix:Matrix = null, param4:int = 0, param5:int = -1) : void
+                {
+                    var y:* = NaN;
+                    var x:* = NaN;
+                    var pos:* = 0;
+                    var _loc8_:* = 0;
+                    var _loc10_:int = 0;
+                    if(param5 < 0 || param4 + param5 > mNumVertices)
+                    {
+                        param5 = mNumVertices - param4;
+                    }
+                    if(param1.numVertices < param2 + param5)
+                    {
+                        param1.numVertices = param2 + param5;
+                    }
+                    var _loc7_:FastByteArray = param1.mRawData;
+                    _loc7_.overwriteBytesAt(param2 * 20,mRawData,param4 * 20,param5 * 20);
+                    if(matrix)
+                    {
+                        pos = uint(mRawData.getHeapAddress(param4 * 20));
+                        _loc8_ = uint(_loc7_.getHeapAddress(param2 * 20));
+                        _loc10_ = 0;
+                        while(_loc10_ < param5)
+                        {
+                            x = lf32(pos);
+                            y = lf32(pos + 4);
+                            sf32(matrix.a * x + matrix.c * y + matrix.tx,_loc8_);
+                            sf32(matrix.d * y + matrix.b * x + matrix.ty,_loc8_ + 4);
+                            pos = uint(pos + 20);
+                            _loc8_ = uint(_loc8_ + 20);
+                            _loc10_++;
+                        }
+                    }
+                }
+
 
                 if (matrix)
                 {
                     var x:Number, y:Number;
                     var pos:int = targetVertexID * _vertexSize + _posOffset;
+
                     var endPos:int = pos + (numVertices * _vertexSize);
 
                     while (pos < endPos)
                     {
-                        targetRawData.position = pos;
-                        x = targetRawData.readFloat();
-                        y = targetRawData.readFloat();
+                        x = targetRawData.readFloat(pos);
+                        y = targetRawData.readFloat(pos + 4);
 
-                        targetRawData.position = pos;
                         targetRawData.writeFloat(matrix.a * x + matrix.c * y + matrix.tx);
                         targetRawData.writeFloat(matrix.d * y + matrix.b * x + matrix.ty);
 
@@ -808,8 +842,7 @@ import starling.core.Starling;
                 }
                 else
                 {
-                    _rawData.position = colorPos;
-                    rgba = unmultiplyAlpha(switchEndian(_rawData.readUnsignedInt()));
+                    rgba = unmultiplyAlpha(switchEndian(_rawData.readUnsignedInt(colorPos)));
                     rgba = (rgba & 0xffffff00) | (int(alpha * 255.0) & 0xff);
                     rgba = premultiplyAlpha(rgba);
 
