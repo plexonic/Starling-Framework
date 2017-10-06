@@ -34,8 +34,6 @@ import flash.display.Loader;
     import flash.utils.getQualifiedClassName;
     import flash.utils.setTimeout;
 
-import libwebp.DecodeWebp;
-
 import starling.core.Starling;
     import starling.events.Event;
     import starling.events.EventDispatcher;
@@ -1061,10 +1059,6 @@ import starling.core.Starling;
                         loaderInfo.addEventListener(IOErrorEvent.IO_ERROR, onIoError);
                         loaderInfo.addEventListener(Event.COMPLETE, onLoaderComplete);
                         loader.loadBytes(bytes, loaderContext);
-                        break;
-                    case "webp":
-                        var bd : BitmapData = DecodeWebp(bytes as ByteArray);
-                        complete(new Bitmap(bd));
                         break;
                     default: // any XML / JSON / binary data
                         complete(bytes);
