@@ -20,6 +20,13 @@ import flash.geom.Vector3D;
 import flash.utils.ByteArray;
 import flash.utils.Endian;
 
+import avm2.intrinsics.memory.lf32;
+import avm2.intrinsics.memory.li32;
+import avm2.intrinsics.memory.li8;
+import avm2.intrinsics.memory.sf32;
+import avm2.intrinsics.memory.si32;
+import avm2.intrinsics.memory.si8;
+
 import plexonic.memory.FastByteArray;
 
 import starling.core.Starling;
@@ -224,13 +231,14 @@ public class VertexData {
 
                 while (pos < endPos) {
                     targetRawData.position = pos;
-                    x = targetRawData.readFloat();
-                    y = targetRawData.readFloat();
+                    var heapAddress:int = targetRawData.getCurrentHeapAddress();
+                    x = lf32(heapAddress);
+                    y = lf32(heapAddress + 4);
 
-                    targetRawData.position = pos;
-                    targetRawData.writeFloat(matrix.a * x + matrix.c * y + matrix.tx);
-                    targetRawData.writeFloat(matrix.d * y + matrix.b * x + matrix.ty);
 
+                    sf32(matrix.a * x + matrix.c * y + matrix.tx, heapAddress);
+                    sf32(matrix.d * y + matrix.b * x + matrix.ty, heapAddress += 4);
+                    targetRawData.position += 8;
                     pos += _vertexSize;
                 }
             }
@@ -307,11 +315,11 @@ public class VertexData {
 
         if (matrix) {
             for (i = 0; i < numVertices; ++i) {
-                x = sourceData.readFloat();
-                y = sourceData.readFloat();
-
-                targetData.writeFloat(matrix.a * x + matrix.c * y + matrix.tx);
-                targetData.writeFloat(matrix.d * y + matrix.b * x + matrix.ty);
+                var heapAddress:uint = sourceData.getCurrentHeapAddress();
+                x = lf32(heapAddress);
+                y = lf32(heapAddress += 4);
+                sf32(matrix.a * x + matrix.c * y + matrix.tx, heapAddress += 4);
+                sf32(matrix.d * y + matrix.b * x + matrix.ty, heapAddress += 4);
 
                 sourceData.position += sourceDelta;
                 targetData.position += targetDelta;
@@ -319,8 +327,10 @@ public class VertexData {
         }
         else {
             for (i = 0; i < numVertices; ++i) {
-                for (j = 0; j < attributeSizeIn32Bits; ++j)
-                    targetData.writeUnsignedInt(sourceData.readUnsignedInt());
+                for (j = 0; j < attributeSizeIn32Bits; ++j) {
+                    si32(li32(sourceData.getCurrentHeapAddress()), targetData.getCurrentHeapAddress());
+                }
+
 
                 sourceData.position += sourceDelta;
                 targetData.position += targetDelta;
@@ -357,7 +367,9 @@ public class VertexData {
     /** Reads an unsigned integer value from the specified vertex and attribute. */
     public function getUnsignedInt(vertexID:int, attrName:String):uint {
         _rawData.position = vertexID * _vertexSize + getAttribute(attrName).offset;
-        return _rawData.readUnsignedInt();
+        var out:uint = li32(_rawData.getCurrentHeapAddress());
+        _rawData.position += 4;
+        return out;
     }
 
     /** Writes an unsigned integer value to the specified vertex and attribute. */
@@ -366,13 +378,17 @@ public class VertexData {
             numVertices = vertexID + 1;
 
         _rawData.position = vertexID * _vertexSize + getAttribute(attrName).offset;
-        _rawData.writeUnsignedInt(value);
+        si32(value, _rawData.getCurrentHeapAddress());
+        _rawData.position += 4;
+
     }
 
     /** Reads a float value from the specified vertex and attribute. */
     public function getFloat(vertexID:int, attrName:String):Number {
         _rawData.position = vertexID * _vertexSize + getAttribute(attrName).offset;
-        return _rawData.readFloat();
+        var heapAddress:int = _rawData.getCurrentHeapAddress();
+        _rawData.position += 4;
+        return lf32(heapAddress);
     }
 
     /** Writes a float value to the specified vertex and attribute. */
@@ -381,7 +397,8 @@ public class VertexData {
             numVertices = vertexID + 1;
 
         _rawData.position = vertexID * _vertexSize + getAttribute(attrName).offset;
-        _rawData.writeFloat(value);
+        sf32(value, _rawData.getCurrentHeapAddress());
+        _rawData.position += 4;
     }
 
     /** Reads a Point from the specified vertex and attribute. */
@@ -390,9 +407,10 @@ public class VertexData {
 
         var offset:int = attrName == "position" ? _posOffset : getAttribute(attrName).offset;
         _rawData.position = vertexID * _vertexSize + offset;
-        out.x = _rawData.readFloat();
-        out.y = _rawData.readFloat();
-
+        var heapAddress:int = _rawData.getCurrentHeapAddress();
+        out.x = lf32(heapAddress);
+        out.y = lf32(heapAddress + 4);
+        _rawData.position += 8;
         return out;
     }
 
@@ -403,8 +421,10 @@ public class VertexData {
 
         var offset:int = attrName == "position" ? _posOffset : getAttribute(attrName).offset;
         _rawData.position = vertexID * _vertexSize + offset;
-        _rawData.writeFloat(x);
-        _rawData.writeFloat(y);
+        var heapAddress:int = _rawData.getCurrentHeapAddress();
+        sf32(x, heapAddress);
+        sf32(y, heapAddress += 4);
+        _rawData.position += 8;
     }
 
     /** Reads a Vector3D from the specified vertex and attribute.
@@ -413,10 +433,11 @@ public class VertexData {
         if (out == null) out = new Vector3D();
 
         _rawData.position = vertexID * _vertexSize + getAttribute(attrName).offset;
-        out.x = _rawData.readFloat();
-        out.y = _rawData.readFloat();
-        out.z = _rawData.readFloat();
-
+        var heapAddress:int = _rawData.getCurrentHeapAddress();
+        out.x = lf32(heapAddress);
+        out.y = lf32(heapAddress += 4);
+        out.z = lf32(heapAddress += 4);
+        _rawData.position += 12;
         return out;
     }
 
@@ -426,9 +447,11 @@ public class VertexData {
             numVertices = vertexID + 1;
 
         _rawData.position = vertexID * _vertexSize + getAttribute(attrName).offset;
-        _rawData.writeFloat(x);
-        _rawData.writeFloat(y);
-        _rawData.writeFloat(z);
+        var heapAddress:int = _rawData.getCurrentHeapAddress();
+        sf32(x, heapAddress);
+        sf32(y, heapAddress += 4);
+        sf32(z, heapAddress += 4);
+        _rawData.position += 12;
     }
 
     /** Reads a Vector3D from the specified vertex and attribute, including the fourth
@@ -437,11 +460,12 @@ public class VertexData {
         if (out == null) out = new Vector3D();
 
         _rawData.position = vertexID * _vertexSize + getAttribute(attrName).offset;
-        out.x = _rawData.readFloat();
-        out.y = _rawData.readFloat();
-        out.z = _rawData.readFloat();
-        out.w = _rawData.readFloat();
-
+        var heapAddress:int = _rawData.getCurrentHeapAddress();
+        out.x = lf32(heapAddress);
+        out.y = lf32(heapAddress += 4);
+        out.z = lf32(heapAddress += 4);
+        out.w = lf32(heapAddress += 4);
+        _rawData.position += 16;
         return out;
     }
 
@@ -452,17 +476,20 @@ public class VertexData {
             numVertices = vertexID + 1;
 
         _rawData.position = vertexID * _vertexSize + getAttribute(attrName).offset;
-        _rawData.writeFloat(x);
-        _rawData.writeFloat(y);
-        _rawData.writeFloat(z);
-        _rawData.writeFloat(w);
+        var heapAddress:int = _rawData.getCurrentHeapAddress();
+        sf32(x, heapAddress);
+        sf32(y, heapAddress += 4);
+        sf32(z, heapAddress += 4);
+        sf32(w, heapAddress += 4);
+        _rawData.position += 16;
     }
 
     /** Reads an RGB color from the specified vertex and attribute (no alpha). */
     public function getColor(vertexID:int, attrName:String = "color"):uint {
         var offset:int = attrName == "color" ? _colOffset : getAttribute(attrName).offset;
         _rawData.position = vertexID * _vertexSize + offset;
-        var rgba:uint = switchEndian(_rawData.readUnsignedInt());
+        var rgba:uint = switchEndian(li32(_rawData.getCurrentHeapAddress()));
+        _rawData.position += 4;
         if (_premultipliedAlpha) rgba = unmultiplyAlpha(rgba);
         return (rgba >> 8) & 0xffffff;
     }
@@ -480,7 +507,8 @@ public class VertexData {
     public function getAlpha(vertexID:int, attrName:String = "color"):Number {
         var offset:int = attrName == "color" ? _colOffset : getAttribute(attrName).offset;
         _rawData.position = vertexID * _vertexSize + offset;
-        var rgba:uint = switchEndian(_rawData.readUnsignedInt());
+        var rgba:uint = switchEndian(li32(_rawData.getCurrentHeapAddress()));
+        _rawData.position += 4;
         return (rgba & 0xff) / 255.0;
     }
 
@@ -520,12 +548,14 @@ public class VertexData {
             var offset:int = attrName == "position" ? _posOffset : getAttribute(attrName).offset;
             var position:int = vertexID * _vertexSize + offset;
             var x:Number, y:Number, i:int;
-
+            var heapAddress:int;
             if (matrix == null) {
                 for (i = 0; i < numVertices; ++i) {
                     _rawData.position = position;
-                    x = _rawData.readFloat();
-                    y = _rawData.readFloat();
+                    heapAddress = _rawData.getCurrentHeapAddress();
+                    x = lf32(heapAddress);
+                    y = lf32(heapAddress + 4);
+                    _rawData.position += 8;
                     position += _vertexSize;
 
                     if (minX > x) minX = x;
@@ -537,8 +567,10 @@ public class VertexData {
             else {
                 for (i = 0; i < numVertices; ++i) {
                     _rawData.position = position;
-                    x = _rawData.readFloat();
-                    y = _rawData.readFloat();
+                    heapAddress = _rawData.getCurrentHeapAddress();
+                    x = lf32(heapAddress);
+                    y = lf32(heapAddress + 4);
+                    _rawData.position += 8;
                     position += _vertexSize;
 
                     MatrixUtil.transformCoords(matrix, x, y, sHelperPoint);
@@ -590,8 +622,10 @@ public class VertexData {
 
             for (i = 0; i < numVertices; ++i) {
                 _rawData.position = position;
-                x = _rawData.readFloat();
-                y = _rawData.readFloat();
+                var heapAddress:int = _rawData.getCurrentHeapAddress();
+                x = lf32(heapAddress);
+                y = lf32(heapAddress + 4);
+                _rawData.position += 8;
                 position += _vertexSize;
 
                 if (matrix)
@@ -638,11 +672,12 @@ public class VertexData {
 
                     for (var j:int = 0; j < _numVertices; ++j) {
                         _rawData.position = pos;
-                        oldColor = switchEndian(_rawData.readUnsignedInt());
+                        oldColor = switchEndian(li32(_rawData.getCurrentHeapAddress()));
                         newColor = value ? premultiplyAlpha(oldColor) : unmultiplyAlpha(oldColor);
 
                         _rawData.position = pos;
-                        _rawData.writeUnsignedInt(switchEndian(newColor));
+                        si32(switchEndian(newColor), _rawData.getCurrentHeapAddress());
+                        _rawData.position += 4;
 
                         pos += _vertexSize;
                     }
@@ -664,11 +699,11 @@ public class VertexData {
         for (var i:int = 0; i < _numVertices; ++i) {
             _rawData.position = pos;
 
-            if (_rawData.readUnsignedInt() != 0xffffffff) {
+            if (li32(_rawData.getCurrentHeapAddress()) != 0xffffffff) {
                 _tinted = true;
                 break;
             }
-
+            _rawData.position += 4;
             pos += _vertexSize;
         }
 
@@ -691,13 +726,15 @@ public class VertexData {
 
         while (pos < endPos) {
             _rawData.position = pos;
-            x = _rawData.readFloat();
-            y = _rawData.readFloat();
+            var heapAddress:int = _rawData.getCurrentHeapAddress();
+            x = lf32(heapAddress);
+            y = lf32(heapAddress += 4);
 
             _rawData.position = pos;
-            _rawData.writeFloat(matrix.a * x + matrix.c * y + matrix.tx);
-            _rawData.writeFloat(matrix.d * y + matrix.b * x + matrix.ty);
-
+            heapAddress = _rawData.getCurrentHeapAddress();
+            sf32(matrix.a * x + matrix.c * y + matrix.tx, heapAddress);
+            sf32(matrix.d * y + matrix.b * x + matrix.ty, heapAddress += 4);
+            _rawData.position += 8
             pos += _vertexSize;
         }
     }
@@ -715,13 +752,15 @@ public class VertexData {
 
         while (pos < endPos) {
             _rawData.position = pos;
-            x = _rawData.readFloat();
-            y = _rawData.readFloat();
+            var heapAddress:int = _rawData.getCurrentHeapAddress();
+            x = lf32(heapAddress);
+            y = lf32(heapAddress += 4);
 
             _rawData.position = pos;
-            _rawData.writeFloat(x + deltaX);
-            _rawData.writeFloat(y + deltaY);
-
+            heapAddress = _rawData.getCurrentHeapAddress();
+            sf32(x + deltaX, heapAddress);
+            sf32(y + deltaY, heapAddress += 4);
+            _rawData.position += 8;
             pos += _vertexSize;
         }
     }
@@ -742,22 +781,26 @@ public class VertexData {
 
         for (i = 0; i < numVertices; ++i) {
             alphaPos = colorPos + 3;
-            alpha = _rawData.getAt(alphaPos) / 255.0 * factor;
+            _rawData.position = alphaPos;
+            alpha = li8(_rawData.getCurrentHeapAddress()) / 255.0 * factor;
 
             if (alpha > 1.0) alpha = 1.0;
             else if (alpha < 0.0) alpha = 0.0;
 
             if (alpha == 1.0 || !_premultipliedAlpha) {
-                _rawData.setAt(alphaPos, int(alpha * 255.0));
+                _rawData.position = alphaPos;
+                si8(int(alpha * 255.0), _rawData.getCurrentHeapAddress());
             }
             else {
                 _rawData.position = colorPos;
-                rgba = unmultiplyAlpha(switchEndian(_rawData.readUnsignedInt()));
+                rgba = unmultiplyAlpha(switchEndian(li32(_rawData.getCurrentHeapAddress())));
+                _rawData.position += 4;
                 rgba = (rgba & 0xffffff00) | (int(alpha * 255.0) & 0xff);
                 rgba = premultiplyAlpha(rgba);
 
                 _rawData.position = colorPos;
-                _rawData.writeUnsignedInt(switchEndian(rgba));
+                si32(switchEndian(rgba), _rawData.getCurrentHeapAddress());
+                _rawData.position += 4;
             }
 
             colorPos += _vertexSize;
@@ -785,11 +828,12 @@ public class VertexData {
         if (_premultipliedAlpha && alpha != 1.0) rgba = premultiplyAlpha(rgba);
 
         _rawData.position = vertexID * _vertexSize + offset;
-        _rawData.writeUnsignedInt(switchEndian(rgba));
-
+        si32(switchEndian(rgba), _rawData.getCurrentHeapAddress());
+        _rawData.position += 4;
         while (pos < endPos) {
             _rawData.position = pos;
-            _rawData.writeUnsignedInt(switchEndian(rgba));
+            si32(switchEndian(rgba), _rawData.getCurrentHeapAddress());
+            _rawData.position += 4;
             pos += _vertexSize;
         }
     }
@@ -920,7 +964,10 @@ public class VertexData {
 
             if (_rawData.length > oldLength) {
                 _rawData.position = oldLength;
-                while (_rawData.bytesAvailable) _rawData.writeUnsignedInt(0);
+                while (_rawData.bytesAvailable) {
+                    si32(0, _rawData.getCurrentHeapAddress());
+                    _rawData.position += 4;
+                }
             }
 
             if (_rawData.length < newLength)
@@ -933,7 +980,8 @@ public class VertexData {
                     var pos:int = _numVertices * _vertexSize + attribute.offset;
                     for (var j:int = _numVertices; j < value; ++j) {
                         _rawData.position = pos;
-                        _rawData.writeUnsignedInt(0xffffffff);
+                        si32(0xffffffff, _rawData.getCurrentHeapAddress());
+                        _rawData.position += 4;
                         pos += _vertexSize;
                     }
                 }
