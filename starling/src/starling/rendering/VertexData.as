@@ -183,11 +183,23 @@ public class VertexData {
     /** Creates a duplicate of the vertex data object. */
     public function clone():VertexData {
         var clone:VertexData = new VertexData(_format, _numVertices);
-        clone._rawData.writeBytes(_rawData.bytes, _rawData.offset, _rawData.length);
+        writeBytes(clone._rawData, _rawData.bytes, _rawData.offset, _rawData.length);
         clone._numVertices = _numVertices;
         clone._premultipliedAlpha = _premultipliedAlpha;
         clone._tinted = _tinted;
         return clone;
+    }
+
+    public function writeBytes(fastByteArray:FastByteArray, byteArray:ByteArray, offset:uint = 0, length:uint = 0):void {
+        length = length == 0 ? byteArray.length : length;
+        if (fastByteArray.length < fastByteArray.position + length) {
+            fastByteArray.length = fastByteArray.position + length;
+        }
+        var heapAddress:uint = fastByteArray.getCurrentHeapAddress();
+        byteArray.position = offset;
+        while (byteArray.position < (offset + length)) {
+            si8(byteArray.readUnsignedByte(), heapAddress++);
+        }
     }
 
     /** Copies the vertex data (or a range of it, defined by 'vertexID' and 'numVertices')
@@ -222,7 +234,7 @@ public class VertexData {
 
             var targetRawData:FastByteArray = target._rawData;
             targetRawData.position = targetVertexID * _vertexSize;
-            targetRawData.writeBytes(_rawData.bytes, _rawData.offset + ( vertexID * _vertexSize), numVertices * _vertexSize);
+            writeBytes(targetRawData, _rawData.bytes, _rawData.offset + ( vertexID * _vertexSize), numVertices * _vertexSize);
 
             if (matrix) {
                 var x:Number, y:Number;
@@ -344,7 +356,7 @@ public class VertexData {
 
         sBytes.length = numBytes;
         sBytes.position = 0;
-        sBytes.writeBytes(_rawData.bytes, _rawData.offset, numBytes);
+        writeBytes(sBytes, _rawData.bytes, _rawData.offset, numBytes);
 
         FastByteArray.switchMemory(_rawData, sBytes);
 
@@ -967,7 +979,7 @@ public class VertexData {
 
                 for (i = 0; i < _numVertices; ++i) {
                     sBytes.position = pos;
-                    sBytes.writeBytes(_rawData.bytes, _rawData.offset + (srcVertexSize * i + srcAttr.offset), srcAttr.size);
+                    writeBytes(sBytes, _rawData.bytes, _rawData.offset + (srcVertexSize * i + srcAttr.offset), srcAttr.size);
                     pos += tgtVertexSize;
                 }
             }
