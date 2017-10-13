@@ -126,7 +126,7 @@ public class VertexData {
     // helper objects
     private static var sHelperPoint:Point = new Point();
     private static var sHelperPoint3D:Vector3D = new Vector3D();
-    private static var sBytes:ByteArray = new ByteArray();
+    private static var sBytes:FastByteArray = new FastByteArray(4);
 
     /** Creates an empty VertexData object with the given format and initial capacity.
      *
@@ -346,9 +346,7 @@ public class VertexData {
         sBytes.position = 0;
         sBytes.writeBytes(_rawData.bytes, _rawData.offset, numBytes);
 
-        _rawData.clear();
-        _rawData.length = numBytes;
-        _rawData.writeBytes(sBytes);
+        FastByteArray.switchMemory(_rawData, sBytes);
 
         sBytes.clear();
     }
@@ -984,11 +982,7 @@ public class VertexData {
                 }
             }
         }
-
-        _rawData.clear();
-        _rawData.length = sBytes.length;
-        _rawData.writeBytes(sBytes);
-        sBytes.clear();
+        FastByteArray.switchMemory(_rawData, sBytes);
 
         _format = value;
         _attributes = _format.attributes;
