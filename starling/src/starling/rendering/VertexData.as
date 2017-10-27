@@ -197,8 +197,14 @@ public class VertexData {
         }
         var heapAddress:uint = fastByteArray.getCurrentHeapAddress();
         byteArray.position = offset;
-        while (byteArray.position < (offset + length)) {
+        var byteCount:int = length % 4;
+        while (byteArray.position < (offset + byteCount)) {
             si8(byteArray.readUnsignedByte(), heapAddress++);
+        }
+
+        while (byteArray.position < (offset + length)) {
+            si32(byteArray.readUnsignedInt(), heapAddress);
+            heapAddress += 4;
         }
     }
 
@@ -527,15 +533,13 @@ public class VertexData {
             var minX:Number = Number.MAX_VALUE, maxX:Number = -Number.MAX_VALUE;
             var minY:Number = Number.MAX_VALUE, maxY:Number = -Number.MAX_VALUE;
             var offset:int = attrName == "position" ? _posOffset : getAttribute(attrName).offset;
-            var position:int = vertexID * _vertexSize + offset;
             var x:Number, y:Number, i:int;
-            var heapAddress:int;
+            var heapAddress:int=_rawData.getHeapAddress(vertexID * _vertexSize + offset);
             if (matrix == null) {
                 for (i = 0; i < numVertices; ++i) {
-                    heapAddress = _rawData.getHeapAddress(position);
                     x = lf32(heapAddress);
                     y = lf32(heapAddress + 4);
-                    position += _vertexSize;
+                    heapAddress += _vertexSize;
 
                     if (minX > x) minX = x;
                     if (maxX < x) maxX = x;
@@ -545,10 +549,9 @@ public class VertexData {
             }
             else {
                 for (i = 0; i < numVertices; ++i) {
-                    heapAddress = _rawData.getHeapAddress(position);
                     x = lf32(heapAddress);
                     y = lf32(heapAddress + 4);
-                    position += _vertexSize;
+                    heapAddress += _vertexSize;
 
                     MatrixUtil.transformCoords(matrix, x, y, sHelperPoint);
 
