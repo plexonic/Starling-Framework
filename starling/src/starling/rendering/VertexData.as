@@ -183,28 +183,32 @@ public class VertexData {
     /** Creates a duplicate of the vertex data object. */
     public function clone():VertexData {
         var clone:VertexData = new VertexData(_format, _numVertices);
-        writeBytes(clone._rawData, _rawData.bytes, _rawData.offset, _rawData.length);
+        writeBytes(clone._rawData, _rawData, 0, _rawData.length);
         clone._numVertices = _numVertices;
         clone._premultipliedAlpha = _premultipliedAlpha;
         clone._tinted = _tinted;
         return clone;
     }
 
-    public function writeBytes(fastByteArray:FastByteArray, byteArray:ByteArray, offset:uint = 0, length:uint = 0):void {
-        length = length == 0 ? byteArray.length : length;
-        if (fastByteArray.length < fastByteArray.position + length) {
-            fastByteArray.length = fastByteArray.position + length;
+    public function writeBytes(destinationFastBytes:FastByteArray, sourceFastBytes:FastByteArray, offset:uint = 0, length:uint = 0):void {
+        length = length == 0 ? sourceFastBytes.length : length;
+        var destinationEndPosition:int = destinationFastBytes.position + length;
+        if (destinationFastBytes.length < destinationEndPosition) {
+            destinationFastBytes.length = destinationEndPosition;
         }
-        var heapAddress:uint = fastByteArray.getCurrentHeapAddress();
-        byteArray.position = offset;
-        var byteCount:int = length % 4;
-        while (byteArray.position < (offset + byteCount)) {
-            si8(byteArray.readUnsignedByte(), heapAddress++);
-        }
+        var heapAddress:uint = destinationFastBytes.getCurrentHeapAddress();
+        var sourceHeapAddress:uint = sourceFastBytes.getHeapAddress(offset);
 
-        while (byteArray.position < (offset + length)) {
-            si32(byteArray.readUnsignedInt(), heapAddress);
+        var byteCount:int = length % 4;
+        var sourceEndPosition:uint = sourceFastBytes.getHeapAddress(offset + byteCount);
+        while (sourceEndPosition < sourceEndPosition) {
+            si8(li8(sourceHeapAddress++), heapAddress++);
+        }
+        sourceEndPosition = sourceFastBytes.getHeapAddress(offset + length);
+        while (sourceHeapAddress < sourceEndPosition) {
+            si32(li32(sourceHeapAddress), heapAddress);
             heapAddress += 4;
+            sourceHeapAddress += 4;
         }
     }
 
@@ -240,7 +244,7 @@ public class VertexData {
 
             var targetRawData:FastByteArray = target._rawData;
             targetRawData.position = targetVertexID * _vertexSize;
-            writeBytes(targetRawData, _rawData.bytes, _rawData.offset + ( vertexID * _vertexSize), numVertices * _vertexSize);
+            writeBytes(targetRawData, _rawData, ( vertexID * _vertexSize), numVertices * _vertexSize);
 
             if (matrix) {
                 var x:Number, y:Number;
@@ -362,7 +366,7 @@ public class VertexData {
 
         sBytes.length = numBytes;
         sBytes.position = 0;
-        writeBytes(sBytes, _rawData.bytes, _rawData.offset, numBytes);
+        writeBytes(sBytes, _rawData, 0, numBytes);
 
         FastByteArray.switchMemory(_rawData, sBytes);
 
@@ -982,7 +986,7 @@ public class VertexData {
 
                 for (i = 0; i < _numVertices; ++i) {
                     sBytes.position = pos;
-                    writeBytes(sBytes, _rawData.bytes, _rawData.offset + (srcVertexSize * i + srcAttr.offset), srcAttr.size);
+                    writeBytes(sBytes, _rawData, (srcVertexSize * i + srcAttr.offset), srcAttr.size);
                     pos += tgtVertexSize;
                 }
             }
