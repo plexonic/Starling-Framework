@@ -175,7 +175,10 @@ public class VertexData {
 
     /** Explicitly frees up the memory used by the ByteArray. */
     public function clear():void {
-        _rawData.dispose();
+        if(_rawData){
+            _rawData.dispose();
+            _rawData = null;
+        }
         _numVertices = 0;
         _tinted = false;
     }
