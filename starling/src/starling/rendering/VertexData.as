@@ -126,7 +126,7 @@ public class VertexData {
     // helper objects
     private static var sHelperPoint:Point = new Point();
     private static var sHelperPoint3D:Vector3D = new Vector3D();
-    private static var sBytes:FastByteArray = new FastByteArray(4);
+    private static var sBytes:FastByteArray = FastByteArray.create(4);
 
     /** Creates an empty VertexData object with the given format and initial capacity.
      *
@@ -166,7 +166,7 @@ public class VertexData {
         _numVertices = 0;
         _premultipliedAlpha = true;
 
-        _rawData = new FastByteArray(initialCapacity * _vertexSize);
+        _rawData = FastByteArray.create(initialCapacity * _vertexSize);
 
 
         _rawData.endian = sBytes.endian = Endian.LITTLE_ENDIAN;
@@ -534,7 +534,7 @@ public class VertexData {
             var minY:Number = Number.MAX_VALUE, maxY:Number = -Number.MAX_VALUE;
             var offset:int = attrName == "position" ? _posOffset : getAttribute(attrName).offset;
             var x:Number, y:Number, i:int;
-            var heapAddress:int=_rawData.getHeapAddress(vertexID * _vertexSize + offset);
+            var heapAddress:int = _rawData.getHeapAddress(vertexID * _vertexSize + offset);
             if (matrix == null) {
                 for (i = 0; i < numVertices; ++i) {
                     x = lf32(heapAddress);
