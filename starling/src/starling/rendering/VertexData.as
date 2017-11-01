@@ -17,7 +17,6 @@ import flash.geom.Matrix3D;
 import flash.geom.Point;
 import flash.geom.Rectangle;
 import flash.geom.Vector3D;
-import flash.utils.ByteArray;
 import flash.utils.Endian;
 
 import avm2.intrinsics.memory.lf32;
@@ -167,15 +166,12 @@ public class VertexData {
         _premultipliedAlpha = true;
 
         _rawData = FastByteArray.create(initialCapacity * _vertexSize);
-
-
-        _rawData.endian = sBytes.endian = Endian.LITTLE_ENDIAN;
-        _rawData.length = 0;                             // changes length, but not memory!
+        _rawData.length = 0; // changes length, but not memory!
     }
 
     /** Explicitly frees up the memory used by the ByteArray. */
     public function clear():void {
-        if(_rawData){
+        if (_rawData) {
             _rawData.dispose();
             _rawData = null;
         }
@@ -857,7 +853,7 @@ public class VertexData {
             numVertices = _numVertices - vertexID;
 
         if (numVertices > 0)
-            buffer.uploadFromByteArray(_rawData.bytes, _rawData.offset, vertexID, numVertices);
+            buffer.uploadFromByteArray(_rawData.heap, _rawData.offset, vertexID, numVertices);
     }
 
     [Inline]
@@ -954,11 +950,6 @@ public class VertexData {
         _numVertices = value;
     }
 
-    /** The raw vertex data; not a copy! */
-    public function get rawData():ByteArray {
-        return _rawData.bytes;
-    }
-
     /** The format that describes the attributes of each vertex.
      *  When you assign a different format, the raw data will be converted accordingly,
      *  i.e. attributes with the same name will still point to the same data.
@@ -972,7 +963,7 @@ public class VertexData {
     public function set format(value:VertexDataFormat):void {
         if (_format === value) return;
 
-        var a:int, i:int, pos:int;
+        var a:int, i:int;
         var srcVertexSize:int = _format.vertexSize;
         var tgtVertexSize:int = value.vertexSize;
         var numAttributes:int = value.numAttributes;
@@ -985,22 +976,18 @@ public class VertexData {
 
             if (srcAttr) // copy attributes that exist in both targets
             {
-                pos = tgtAttr.offset;
-
+                sBytes.position = tgtAttr.offset;
                 for (i = 0; i < _numVertices; ++i) {
-                    sBytes.position = pos;
                     writeBytes(sBytes, _rawData, (srcVertexSize * i + srcAttr.offset), srcAttr.size);
-                    pos += tgtVertexSize;
+                    sBytes.position += tgtVertexSize;
                 }
             }
             else if (tgtAttr.isColor) // initialize color values with "white" and full alpha
             {
-                pos = tgtAttr.offset;
-
+                var addr:uint = sBytes.getHeapAddress(tgtAttr.offset);
                 for (i = 0; i < _numVertices; ++i) {
-                    sBytes.position = pos;
-                    sBytes.writeUnsignedInt(0xffffffff);
-                    pos += tgtVertexSize;
+                    si32(0xffffffff, addr);
+                    addr += tgtVertexSize;
                 }
             }
         }
