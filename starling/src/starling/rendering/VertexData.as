@@ -324,7 +324,6 @@ public class VertexData {
 
         var i:int, j:int, x:Number, y:Number;
         var sourceData:FastByteArray = _rawData;
-        var targetData:FastByteArray = target._rawData;
         var sourceDelta:int = _vertexSize - sourceAttribute.size;
         var targetDelta:int = target._vertexSize - targetAttribute.size;
         var attributeSizeIn32Bits:int = sourceAttribute.size / 4;
