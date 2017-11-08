@@ -385,31 +385,27 @@ public class VertexData {
 
     /** Reads an unsigned integer value from the specified vertex and attribute. */
     public function getUnsignedInt(vertexID:int, attrName:String):uint {
-        var heapAddress:uint = _heapOffset + vertexID * _vertexSize + getAttribute(attrName).offset;
-        return li32(heapAddress);
+        return li32(_heapOffset + vertexID * _vertexSize + getAttribute(attrName).offset);
     }
 
     /** Writes an unsigned integer value to the specified vertex and attribute. */
     public function setUnsignedInt(vertexID:int, attrName:String, value:uint):void {
         if (_numVertices < vertexID + 1)
             numVertices = vertexID + 1;
-        var heapAddress:uint = _heapOffset + vertexID * _vertexSize + getAttribute(attrName).offset;
-        si32(value, heapAddress);
+        si32(value, _heapOffset + vertexID * _vertexSize + getAttribute(attrName).offset);
 
     }
 
     /** Reads a float value from the specified vertex and attribute. */
     public function getFloat(vertexID:int, attrName:String):Number {
-        var heapAddress:int = _heapOffset + vertexID * _vertexSize + getAttribute(attrName).offset;
-        return lf32(heapAddress);
+        return lf32(_heapOffset + vertexID * _vertexSize + getAttribute(attrName).offset);
     }
 
     /** Writes a float value to the specified vertex and attribute. */
     public function setFloat(vertexID:int, attrName:String, value:Number):void {
         if (_numVertices < vertexID + 1)
             numVertices = vertexID + 1;
-        var heapAddress:uint = _heapOffset + vertexID * _vertexSize + getAttribute(attrName).offset;
-        sf32(value, heapAddress);
+        sf32(value, _heapOffset + vertexID * _vertexSize + getAttribute(attrName).offset);
     }
 
     /** Reads a Point from the specified vertex and attribute. */
@@ -1030,7 +1026,7 @@ public class VertexData {
 
     /** The size (in 32 bit units) of each vertex. */
     public function get vertexSizeIn32Bits():int {
-        return _vertexSize / 4;
+        return _vertexSize / 4.0;
     }
 
     /** The size (in bytes) of the raw vertex data. */
@@ -1040,7 +1036,7 @@ public class VertexData {
 
     /** The size (in 32 bit units) of the raw vertex data. */
     public function get sizeIn32Bits():int {
-        return _numVertices * _vertexSize / 4;
+        return _numVertices * _vertexSize / 4.0;
     }
 }
 }
