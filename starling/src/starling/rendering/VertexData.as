@@ -203,7 +203,7 @@ public class VertexData {
 
         var byteCount:int = length % 4;
         var sourceEndPosition:uint = sourceFastBytes.getHeapAddress(offset + byteCount);
-        while (sourceEndPosition < sourceEndPosition) {
+        while (sourceHeapAddress < sourceEndPosition) {
             si8(li8(sourceHeapAddress++), heapAddress++);
         }
         sourceEndPosition = sourceFastBytes.getHeapAddress(offset + length);
