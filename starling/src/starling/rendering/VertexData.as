@@ -26,6 +26,8 @@ import avm2.intrinsics.memory.sf32;
 import avm2.intrinsics.memory.si32;
 import avm2.intrinsics.memory.si8;
 
+import plexonic.bugtracker.BugTrackerDataProvider;
+
 import plexonic.memory.FastByteArray;
 
 import starling.core.Starling;
@@ -232,6 +234,9 @@ public class VertexData {
      */
     public function copyTo(target:VertexData, targetVertexID:int = 0, matrix:Matrix = null,
                            vertexID:int = 0, numVertices:int = -1):void {
+        if (target == null) {
+            BugTrackerDataProvider.globalError.targetIsNull = true;
+        }
         if (numVertices < 0 || vertexID + numVertices > _numVertices)
             numVertices = _numVertices - vertexID;
 
@@ -245,6 +250,9 @@ public class VertexData {
             // and then overwrite only the transformed positions.
 
             var targetRawData:FastByteArray = target._rawData;
+            if (targetRawData == null) {
+                BugTrackerDataProvider.globalError.targetRawDataIsNull = true;
+            }
             targetRawData.position = targetVertexID * _vertexSize;
             writeBytes(targetRawData, _rawData, ( vertexID * _vertexSize), numVertices * _vertexSize);
             target._heapOffset = targetRawData.offset;
@@ -926,7 +934,7 @@ public class VertexData {
                 }
             }
 
-            if (_rawData.length < newLength){
+            if (_rawData.length < newLength) {
                 _rawData.length = newLength;
                 _heapOffset = _rawData.offset;
             }
