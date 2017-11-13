@@ -843,8 +843,7 @@ public class VertexData {
         if (context == null) throw new MissingContextError();
         if (_numVertices == 0) return null;
 
-        var buffer:VertexBuffer3D = context.createVertexBuffer(
-                _numVertices, _vertexSize / 4, bufferUsage);
+        var buffer:VertexBuffer3D = context.createVertexBuffer(_numVertices, _vertexSize / 4.0, bufferUsage);
 
         if (upload) uploadToVertexBuffer(buffer);
         return buffer;
