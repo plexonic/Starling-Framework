@@ -126,6 +126,7 @@ import starling.core.Starling;
         private var _numLoadingQueues:int;
 
         private var _defaultTextureOptions:TextureOptions;
+        private var _registerBitmapFontsWithFontFace:Boolean;
         protected var _checkPolicyFile:Boolean;
         private var _keepAtlasXmls:Boolean;
         private var _keepFontXmls:Boolean;
@@ -139,7 +140,8 @@ import starling.core.Starling;
         private var _xmls:Dictionary;
         private var _objects:Dictionary;
         private var _byteArrays:Dictionary;
-        
+        private var _bitmapFonts:Dictionary;
+
         /** helper objects */
         private static var sNames:Vector.<String> = new <String>[];
         
@@ -157,6 +159,7 @@ import starling.core.Starling;
             _xmls = new Dictionary();
             _objects = new Dictionary();
             _byteArrays = new Dictionary();
+            _bitmapFonts = new Dictionary();
             _numConnections = 3;
             _verbose = true;
             _queue = [];
@@ -181,6 +184,9 @@ import starling.core.Starling;
             
             for each (var byteArray:ByteArray in _byteArrays)
                 byteArray.clear();
+
+            for each (var bitmapFont:BitmapFont in _bitmapFonts)
+                bitmapFont.dispose();
         }
         
         // retrieving
@@ -303,7 +309,17 @@ import starling.core.Starling;
         {
             return getDictionaryKeys(_byteArrays, prefix, out);
         }
-        
+
+        public function getBitmapFont(name:String):BitmapFont
+        {
+            return _bitmapFonts[name] as BitmapFont;
+        }
+
+        public function getBitmapFontNames(prefix:String="", out:Vector.<String>=null):Vector.<String>
+        {
+            return getDictionaryKeys(_bitmapFonts, prefix, out);
+        }
+
         // direct adding
         
         /** Register a texture under a certain name. It will be available right away.
@@ -313,7 +329,7 @@ import starling.core.Starling;
         {
             log("Adding texture '" + name + "'");
             
-            if (name in _textures)
+            if (name in _textures && texture != _textures[name])
             {
                 log("Warning: name was already in use; the previous texture will be replaced.");
                 _textures[name].dispose();
@@ -329,7 +345,7 @@ import starling.core.Starling;
         {
             log("Adding texture atlas '" + name + "'");
             
-            if (name in _atlases)
+            if (name in _atlases && atlas != _atlases[name])
             {
                 log("Warning: name was already in use; the previous atlas will be replaced.");
                 _atlases[name].dispose();
@@ -344,7 +360,7 @@ import starling.core.Starling;
         {
             log("Adding sound '" + name + "'");
             
-            if (name in _sounds)
+            if (name in _sounds && sound != _sounds[name])
                 log("Warning: name was already in use; the previous sound will be replaced.");
 
             _sounds[name] = sound;
@@ -357,7 +373,7 @@ import starling.core.Starling;
         {
             log("Adding XML '" + name + "'");
             
-            if (name in _xmls)
+            if (name in _xmls && xml != _xmls[name])
             {
                 log("Warning: name was already in use; the previous XML will be replaced.");
                 System.disposeXML(_xmls[name]);
@@ -372,7 +388,7 @@ import starling.core.Starling;
         {
             log("Adding object '" + name + "'");
             
-            if (name in _objects)
+            if (name in _objects && object != _objects[name])
                 log("Warning: name was already in use; the previous object will be replaced.");
             
             _objects[name] = object;
@@ -385,7 +401,7 @@ import starling.core.Starling;
         {
             log("Adding byte array '" + name + "'");
             
-            if (name in _byteArrays)
+            if (name in _byteArrays && byteArray != _byteArrays[name])
             {
                 log("Warning: name was already in use; the previous byte array will be replaced.");
                 _byteArrays[name].clear();
@@ -393,7 +409,27 @@ import starling.core.Starling;
             
             _byteArrays[name] = byteArray;
         }
-        
+
+        /** Register a bitmap font under a certain name. It will be available right away.
+         *  If the name was already taken, the existing font will be disposed and replaced
+         *  by the new one.
+         *
+         *  <p>Note that the font is <strong>not</strong> registered at the TextField class.
+         *  This only happens when a bitmap font is loaded via the asset queue.</p>
+         */
+        public function addBitmapFont(name:String, font:BitmapFont):void
+        {
+            log("Adding bitmap font '" + name + "'");
+
+            if (name in _bitmapFonts && font != _bitmapFonts[name])
+            {
+                log("Warning: name was already in use; the previous font will be replaced.");
+                _bitmapFonts[name].dispose();
+            }
+
+            _bitmapFonts[name] = font;
+        }
+
         // removing
         
         /** Removes a certain texture, optionally disposing it. */
@@ -414,7 +450,7 @@ import starling.core.Starling;
             
             if (dispose && name in _atlases)
                 _atlases[name].dispose();
-            
+
             delete _atlases[name];
         }
         
@@ -453,7 +489,18 @@ import starling.core.Starling;
             
             delete _byteArrays[name];
         }
-        
+
+        /** Removes a certain bitmap font, optionally disposing it. */
+        public function removeBitmapFont(name:String, dispose:Boolean=true):void
+        {
+            log("Removing bitmap font '" + name + "'");
+
+            if (dispose && name in _bitmapFonts)
+                _bitmapFonts[name].dispose();
+
+            delete _bitmapFonts[name];
+        }
+
         /** Empties the queue and aborts any pending load operations. */
         public function purgeQueue():void
         {
@@ -476,6 +523,7 @@ import starling.core.Starling;
             _xmls = new Dictionary();
             _objects = new Dictionary();
             _byteArrays = new Dictionary();
+            _bitmapFonts = new Dictionary();
         }
         
         // queued adding
@@ -567,19 +615,14 @@ import starling.core.Starling;
         public function enqueueWithName(asset:Object, name:String=null,
                                         options:TextureOptions=null):String
         {
-            var filename:String = null;
-
-            if (getQualifiedClassName(asset) == "flash.filesystem::File")
-            {
-                filename = asset["name"];
-                asset = decodeURI(asset["url"]);
-            }
-
             if (name == null)    name = getName(asset);
             if (options == null) options = _defaultTextureOptions.clone();
             else                 options = options.clone();
 
-            log("Enqueuing '" + (filename || name) + "'");
+            log("Enqueuing '" + name + "'");
+
+            if (getQualifiedClassName(asset) == "flash.filesystem::File")
+                asset = decodeURI(asset["url"]);
 
             _queue.push({
                 name: name,
@@ -688,8 +731,8 @@ import starling.core.Starling;
                 // have to be available for other XMLs. Texture atlases are processed first:
                 // that way, their textures can be referenced, too.
                 
-                xmls.sort(function(a:XML, b:XML):int { 
-                    return a.localName() == "TextureAtlas" ? -1 : 1; 
+                xmls.sort(function(a:XML, b:XML):int {
+                    return a.localName() == "TextureAtlas" ? -1 : 1;
                 });
 
                 setTimeout(processXml, 1, 0);
@@ -704,42 +747,40 @@ import starling.core.Starling;
                     return;
                 }
 
-                var name:String;
                 var texture:Texture;
+                var name:String, fontName:String;
                 var xml:XML = xmls[index];
                 var rootNode:String = xml.localName();
                 var xmlProgress:Number = (index + 1) / (xmls.length + 1);
+                var bitmapFont:BitmapFont;
 
                 if (rootNode == "TextureAtlas")
                 {
                     name = getName(xml.@imagePath.toString());
                     texture = getTexture(name);
 
-                    if (texture)
-                    {
-                        addTextureAtlas(name, new TextureAtlas(texture, xml));
-                        removeTexture(name, false);
-
-                        if (_keepAtlasXmls) addXml(name, xml);
-                        else System.disposeXML(xml);
-                    }
+                    if (texture) addTextureAtlas(name, new TextureAtlas(texture, xml));
                     else log("Cannot create atlas: texture '" + name + "' is missing.");
+
+                    if (_keepAtlasXmls) addXml(name, xml);
+                    else System.disposeXML(xml);
                 }
                 else if (rootNode == "font")
                 {
                     name = getName(xml.pages.page.@file.toString());
+                    fontName = _registerBitmapFontsWithFontFace ? xml.info.@face.toString() : name;
                     texture = getTexture(name);
 
                     if (texture)
                     {
-                        log("Adding bitmap font '" + name + "'");
-                        TextField.registerCompositor(new BitmapFont(texture, xml), name);
-                        removeTexture(name, false);
-
-                        if (_keepFontXmls) addXml(name, xml);
-                        else System.disposeXML(xml);
+                        bitmapFont = new BitmapFont(texture, xml);
+                        addBitmapFont(fontName, bitmapFont);
+                        TextField.registerCompositor(bitmapFont, fontName);
                     }
                     else log("Cannot create bitmap font: texture '" + name + "' is missing.");
+
+                    if (_keepFontXmls) addXml(name, xml);
+                    else System.disposeXML(xml);
                 }
                 else
                     throw new Error("XML contents not recognized: " + rootNode);
@@ -773,8 +814,7 @@ import starling.core.Starling;
         }
 
         private function processRawAsset(name:String, rawAsset:Object, options:TextureOptions,
-                                         xmls:Vector.<XML>,
-                                         onProgress:Function, onComplete:Function):void
+                                         xmls:Vector.<XML>, onProgress:Function, onComplete:Function):void
         {
             var canceled:Boolean = false;
             
@@ -813,7 +853,7 @@ import starling.core.Starling;
                         xmls.push(xml);
                     else
                         addXml(name, xml);
-                    
+
                     onComplete();
                 }
                 else if (_starling.context.driverInfo == "Disposed")
@@ -1301,5 +1341,11 @@ import starling.core.Starling;
          *  More connections can reduce loading times, but require more memory. @default 3. */
         public function get numConnections():int { return _numConnections; }
         public function set numConnections(value:int):void { _numConnections = value; }
+
+        /** Indicates if bitmap fonts should be registered with their "face" attribute from the
+         *  font XML file. Per default, they are registered with the name of the texture file.
+         *  @default false */
+        public function get registerBitmapFontsWithFontFace():Boolean { return _registerBitmapFontsWithFontFace; }
+        public function set registerBitmapFontsWithFontFace(value:Boolean):void { _registerBitmapFontsWithFontFace = value; }
     }
 }
