@@ -36,13 +36,14 @@ package starling.utils
         }
 
         /** Clears the render context with a certain color and alpha value. */
-        public static function clear(rgb:uint=0, alpha:Number=0.0):void
+        public static function clear(rgb:uint=0, alpha:Number=0.0,
+                                     depth:Number=1.0, stencil:uint=0):void
         {
             Starling.context.clear(
                     Color.getRed(rgb)   / 255.0,
                     Color.getGreen(rgb) / 255.0,
                     Color.getBlue(rgb)  / 255.0,
-                    alpha, 1, 127
+                    alpha, depth, stencil
              );
         }
 
@@ -233,7 +234,11 @@ package starling.utils
             {
                 currentProfile = profiles.shift();
 
-                try { execute(stage3D.requestContext3D, renderMode, currentProfile); }
+                try
+                {
+                    SystemUtil.executeWhenApplicationIsActive(
+                        stage3D.requestContext3D, renderMode, currentProfile);
+                }
                 catch (error:Error)
                 {
                     if (profiles.length != 0) setTimeout(requestNextProfile, 1);
