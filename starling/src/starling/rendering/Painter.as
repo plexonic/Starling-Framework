@@ -76,7 +76,10 @@ package starling.rendering
     {
         // the key for the programs stored in 'sharedData'
         private static const PROGRAM_DATA_NAME:String = "starling.rendering.Painter.Programs";
-        private static const DEFAULT_STENCIL_VALUE:uint = 127;
+
+        /** The value with which the stencil buffer will be cleared,
+         *  and the default reference value used for stencil tests. */
+        public static const DEFAULT_STENCIL_VALUE:uint = 127;
 
         // members
 
@@ -385,23 +388,17 @@ package starling.rendering
             }
             else
             {
-                // In 'renderMask', we'll make sure the depth test always fails. Thus, the 3rd
-                // parameter of 'setStencilActions' will always be ignored; the 4th is the one
-                // that counts!
-
                 if (maskee && maskee.maskInverted)
                 {
                     _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
-                        Context3DCompareMode.ALWAYS, Context3DStencilAction.KEEP,
-                        Context3DStencilAction.DECREMENT_SATURATE);
+                        Context3DCompareMode.ALWAYS, Context3DStencilAction.DECREMENT_SATURATE);
 
                     renderMask(mask);
                 }
                 else
                 {
                     _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
-                        Context3DCompareMode.EQUAL, Context3DStencilAction.KEEP,
-                        Context3DStencilAction.INCREMENT_SATURATE);
+                        Context3DCompareMode.EQUAL, Context3DStencilAction.INCREMENT_SATURATE);
 
                     renderMask(mask);
                     stencilReferenceValue++;
@@ -437,23 +434,17 @@ package starling.rendering
             }
             else
             {
-                // In 'renderMask', we'll make sure the depth test always fails. Thus, the 3rd
-                // parameter of 'setStencilActions' will always be ignored; the 4th is the one
-                // that counts!
-
                 if (maskee && maskee.maskInverted)
                 {
                     _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
-                        Context3DCompareMode.ALWAYS, Context3DStencilAction.KEEP,
-                        Context3DStencilAction.INCREMENT_SATURATE);
+                        Context3DCompareMode.ALWAYS, Context3DStencilAction.INCREMENT_SATURATE);
 
                     renderMask(mask);
                 }
                 else
                 {
                     _context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK,
-                        Context3DCompareMode.EQUAL, Context3DStencilAction.KEEP,
-                        Context3DStencilAction.DECREMENT_SATURATE);
+                        Context3DCompareMode.EQUAL, Context3DStencilAction.DECREMENT_SATURATE);
 
                     renderMask(mask);
                     stencilReferenceValue--;
@@ -474,8 +465,8 @@ package starling.rendering
 
             pushState();
             cacheEnabled = false;
-            _state.depthTest = Context3DCompareMode.NEVER; // depth test always fails ->
-                                                           // color buffer won't be modified
+            _state.alpha = 0.0;
+
             if (mask.stage)
             {
                 _state.setModelviewMatricesToIdentity();
@@ -712,12 +703,13 @@ package starling.rendering
         }
 
         /** Clears the render context with a certain color and alpha value. Since this also
-         *  clears the stencil buffer, the stencil reference value is also reset to '0'. */
+         *  clears the stencil buffer, the stencil reference value is also reset to its default
+         *  value. */
         public function clear(rgb:uint=0, alpha:Number=0.0):void
         {
             applyRenderTarget();
             stencilReferenceValue = DEFAULT_STENCIL_VALUE;
-            RenderUtil.clear(rgb, alpha);
+            RenderUtil.clear(rgb, alpha, 1.0, DEFAULT_STENCIL_VALUE);
         }
 
         /** Resets the render target to the back buffer and displays its contents. */
@@ -847,7 +839,7 @@ package starling.rendering
         {
             var key:Object = _state.renderTarget ? _state.renderTargetBase : this;
             if (key in _stencilReferenceValues) return _stencilReferenceValues[key];
-            else return 0;
+            else return DEFAULT_STENCIL_VALUE;
         }
 
         public function set stencilReferenceValue(value:uint):void
