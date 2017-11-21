@@ -295,7 +295,7 @@ package starling.text
                                           format:TextFormat, options:TextOptions=null,skipColor:Boolean = false,
                                           x:Number = 0.0, y:Number = 0.0 ):void
         {
-            var charLocations:Vector.<CharLocation> = arrangeChars(
+            var charLocations:Vector.<BitmapCharLocation> = arrangeChars(
                     width, height, text, format, options);
             var numChars:int = charLocations.length;
 
@@ -305,7 +305,7 @@ package starling.text
 
             for (var i:int=0; i<numChars; ++i)
             {
-                var charLocation:CharLocation = charLocations[i];
+                var charLocation:BitmapCharLocation = charLocations[i];
                 _helperImage.texture = charLocation.char.texture;
                 _helperImage.readjustSize();
                 _helperImage.x = charLocation.x + x;
@@ -314,7 +314,7 @@ package starling.text
                 meshBatch.addMesh(_helperImage);
             }
 
-            CharLocation.rechargePool();
+            BitmapCharLocation.rechargePool();
         }
 
         /** @inheritDoc */
