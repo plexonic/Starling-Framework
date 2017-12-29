@@ -186,7 +186,7 @@ public class VertexData {
     /** Creates a duplicate of the vertex data object. */
     public function clone():VertexData {
         var clone:VertexData = new VertexData(_format, _numVertices);
-        writeBytes(clone._rawData, _rawData, 0, _rawData.length);
+        writeBytes(clone._rawData, 0, _rawData, 0, _rawData.length);
         clone._heapOffset = clone._rawData.offset;
         clone._numVertices = _numVertices;
         clone._premultipliedAlpha = _premultipliedAlpha;
@@ -194,21 +194,22 @@ public class VertexData {
         return clone;
     }
 
-    public function writeBytes(destinationFastBytes:FastByteArray, sourceFastBytes:FastByteArray, offset:uint = 0, length:uint = 0):void {
-        length = length == 0 ? sourceFastBytes.length : length;
-        var destinationEndPosition:int = destinationFastBytes.position + length;
-        if (destinationFastBytes.length < destinationEndPosition) {
-            destinationFastBytes.length = destinationEndPosition;
+    public function writeBytes(targetBytes:FastByteArray, targetPos:uint, sourceBytes:FastByteArray, sourcePos:uint = 0, length:uint = 0):void {
+        length = length == 0 ? sourceBytes.length : length;
+        var destinationEndPosition:int = targetPos + length;
+        if (targetBytes.length < destinationEndPosition) {
+            targetBytes.length = destinationEndPosition;
         }
-        var heapAddress:uint = destinationFastBytes.getCurrentHeapAddress();
-        var sourceHeapAddress:uint = sourceFastBytes.getHeapAddress(offset);
+
+        var heapAddress:uint = targetBytes.getHeapAddress(targetPos);
+        var sourceHeapAddress:uint = sourceBytes.getHeapAddress(sourcePos);
 
         var byteCount:int = length % 4;
-        var sourceEndPosition:uint = sourceFastBytes.getHeapAddress(offset + byteCount);
+        var sourceEndPosition:uint = sourceBytes.getHeapAddress(sourcePos + byteCount);
         while (sourceHeapAddress < sourceEndPosition) {
             si8(li8(sourceHeapAddress++), heapAddress++);
         }
-        sourceEndPosition = sourceFastBytes.getHeapAddress(offset + length);
+        sourceEndPosition = sourceBytes.getHeapAddress(sourcePos + length);
         while (sourceHeapAddress < sourceEndPosition) {
             si32(li32(sourceHeapAddress), heapAddress);
             heapAddress += 4;
@@ -253,8 +254,8 @@ public class VertexData {
             if (targetRawData == null) {
                 BugTrackerDataProvider.globalError.targetRawDataIsNull = true;
             }
-            targetRawData.position = targetVertexID * _vertexSize;
-            writeBytes(targetRawData, _rawData, ( vertexID * _vertexSize), numVertices * _vertexSize);
+
+            writeBytes(targetRawData, targetVertexID * _vertexSize, _rawData, ( vertexID * _vertexSize), numVertices * _vertexSize);
             target._heapOffset = targetRawData.offset;
             if (matrix) {
                 var x:Number, y:Number;
@@ -373,8 +374,7 @@ public class VertexData {
         var numBytes:int = _numVertices * _vertexSize;
 
         sBytes.length = numBytes;
-        sBytes.position = 0;
-        writeBytes(sBytes, _rawData, 0, numBytes);
+        writeBytes(sBytes, 0, _rawData, 0, numBytes);
 
         FastByteArray.switchMemory(_rawData, sBytes);
         _heapOffset = _rawData.offset;
@@ -982,10 +982,10 @@ public class VertexData {
 
             if (srcAttr) // copy attributes that exist in both targets
             {
-                sBytes.position = tgtAttr.offset;
+                var sBytesPos:uint = tgtAttr.offset;
                 for (i = 0; i < _numVertices; ++i) {
-                    writeBytes(sBytes, _rawData, (srcVertexSize * i + srcAttr.offset), srcAttr.size);
-                    sBytes.position += tgtVertexSize;
+                    writeBytes(sBytes, sBytesPos, _rawData, (srcVertexSize * i + srcAttr.offset), srcAttr.size);
+                    sBytesPos += tgtVertexSize;
                 }
             }
             else if (tgtAttr.isColor) // initialize color values with "white" and full alpha
@@ -997,6 +997,7 @@ public class VertexData {
                 }
             }
         }
+
         FastByteArray.switchMemory(_rawData, sBytes);
         _heapOffset = _rawData.offset;
 
