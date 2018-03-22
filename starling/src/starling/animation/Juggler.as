@@ -331,45 +331,46 @@ public class Juggler implements IAnimatable
         var currentIndex:int = 0;
         var i:int;
 
-        time *= _timeScale;
-        if (numObjects == 0 || time == 0) return;
-        _elapsedTime += time;
+            _elapsedTime += time;
+            time *= _timeScale;
 
-        // there is a high probability that the "advanceTime" function modifies the list
-        // of animatables. we must not process new objects right now (they will be processed
-        // in the next frame), and we need to clean up any empty slots in the list.
+            if (numObjects == 0 || time == 0) return;
 
-        for (i=0; i<numObjects; ++i)
-        {
-            var object:IAnimatable = _objects[i];
-            if (object)
+            // there is a high probability that the "advanceTime" function modifies the list 
+            // of animatables. we must not process new objects right now (they will be processed
+            // in the next frame), and we need to clean up any empty slots in the list.
+            
+            for (i=0; i<numObjects; ++i)
             {
-                // shift objects into empty slots along the way
-                if (currentIndex != i)
+                var object:IAnimatable = _objects[i];
+                if (object)
                 {
-                    _objects[currentIndex] = object;
-                    _objects[i] = null;
+                    // shift objects into empty slots along the way
+                    if (currentIndex != i) 
+                    {
+                        _objects[currentIndex] = object;
+                        _objects[i] = null;
+                    }
+                    
+                    object.advanceTime(time);
+                    ++currentIndex;
                 }
-
-                object.advanceTime(time);
-                ++currentIndex;
+            }
+            
+            if (currentIndex != i)
+            {
+                numObjects = _objects.length; // count might have changed!
+                
+                while (i < numObjects)
+                    _objects[int(currentIndex++)] = _objects[int(i++)];
+                
+                _objects.length = currentIndex;
             }
         }
-
-        if (currentIndex != i)
+        
+        private function onRemove(event:Event):void
         {
-            numObjects = _objects.length; // count might have changed!
-
-            while (i < numObjects)
-                _objects[int(currentIndex++)] = _objects[int(i++)];
-
-            _objects.length = currentIndex;
-        }
-    }
-
-    private function onRemove(event:Event):void
-    {
-        var objectID:uint = remove(event.target as IAnimatable);
+            var objectID:uint = remove(event.target as IAnimatable);
 
         if (objectID)
         {

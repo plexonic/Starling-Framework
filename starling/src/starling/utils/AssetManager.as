@@ -115,6 +115,7 @@ import starling.core.Starling;
      *  
      *  assets.loadQueue(...);</listing>
      */
+    [Deprecated(replacement="starling.assets.AssetManager")]
     public class AssetManager extends EventDispatcher
     {
         // This HTTPStatusEvent is only available in AIR
