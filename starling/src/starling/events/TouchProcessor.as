@@ -51,6 +51,10 @@ package starling.events
      */
     public class TouchProcessor
     {
+        private const QUEUE_MAX_LENGTH:int = 8;
+        private const MAX_PASSED_TIME:Number = 0.3;
+
+        private var ignoreEvents:Boolean = false;
         private var _stage:Stage;
         private var _root:DisplayObject;
         private var _elapsedTime:Number;
@@ -118,8 +122,8 @@ package starling.events
                     if (_elapsedTime - _lastTaps[i].timestamp > _multitapTime)
                         _lastTaps.removeAt(i);
             }
-            
-            while (_queue.length > 0 || numIterations == 0)
+            ignoreEvents = passedTime > MAX_PASSED_TIME;
+            while (_queue.length > QUEUE_MAX_LENGTH || numIterations == 0)
             {
                 ++numIterations; // we need to enter this loop at least once (for HOVER updates)
 
@@ -206,11 +210,13 @@ package starling.events
             // target to notify it that it's no longer being hovered over.
             for each (var touchData:Object in sHoveringTouchData)
                 if (touchData.touch.target != touchData.target)
-                    _touchEvent.dispatch(touchData.bubbleChain);
+                    if (!ignoreEvents)
+                        _touchEvent.dispatch(touchData.bubbleChain);
             
             // dispatch events for the rest of our updated touches
             for each (touch in touches)
-                touch.dispatchEvent(_touchEvent);
+                if (!ignoreEvents)
+                    touch.dispatchEvent(_touchEvent);
 
             // clean up any references
             _touchEvent.resetTo(TouchEvent.TOUCH);
@@ -220,6 +226,9 @@ package starling.events
         public function enqueue(touchID:int, phase:String, globalX:Number, globalY:Number,
                                 pressure:Number=1.0, width:Number=1.0, height:Number=1.0):void
         {
+            if(_queue.length >= QUEUE_MAX_LENGTH)
+                return;
+
             _queue.unshift(arguments);
             
             // multitouch simulation (only with mouse)
