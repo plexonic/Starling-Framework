@@ -965,8 +965,9 @@ public class VertexData {
         return _format;
     }
 
-    public function set format(value:VertexDataFormat):void {
-        if (_format === value) return;
+        public function set format(value:VertexDataFormat):void
+        {
+            if (_format == value) return;
 
         var a:int, i:int;
         var srcVertexSize:int = _format.vertexSize;
@@ -998,8 +999,12 @@ public class VertexData {
             }
         }
 
-        FastByteArray.switchMemory(_rawData, sBytes);
-        _heapOffset = _rawData.offset;
+
+            if (value.vertexSize > _format.vertexSize)
+                _rawData.clear(); // avoid 4k blowup
+
+            FastByteArray.switchMemory(_rawData, sBytes);
+            _heapOffset = _rawData.offset;
 
         _format = value;
         _attributes = _format.attributes;
