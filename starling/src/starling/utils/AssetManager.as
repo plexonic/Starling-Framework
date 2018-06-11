@@ -11,8 +11,7 @@
 package starling.utils
 {
     import flash.display.Bitmap;
-import flash.display.BitmapData;
-import flash.display.Loader;
+    import flash.display.Loader;
     import flash.display.LoaderInfo;
     import flash.events.HTTPStatusEvent;
     import flash.events.IOErrorEvent;
@@ -34,7 +33,7 @@ import flash.display.Loader;
     import flash.utils.getQualifiedClassName;
     import flash.utils.setTimeout;
 
-import starling.core.Starling;
+    import starling.core.Starling;
     import starling.events.Event;
     import starling.events.EventDispatcher;
     import starling.text.BitmapFont;
@@ -142,7 +141,7 @@ import starling.core.Starling;
         private var _objects:Dictionary;
         private var _byteArrays:Dictionary;
         private var _bitmapFonts:Dictionary;
-
+        
         /** helper objects */
         private static var sNames:Vector.<String> = new <String>[];
         
@@ -430,7 +429,7 @@ import starling.core.Starling;
 
             _bitmapFonts[name] = font;
         }
-
+        
         // removing
         
         /** Removes a certain texture, optionally disposing it. */
@@ -501,7 +500,7 @@ import starling.core.Starling;
 
             delete _bitmapFonts[name];
         }
-
+        
         /** Empties the queue and aborts any pending load operations. */
         public function purgeQueue():void
         {
@@ -813,7 +812,7 @@ import starling.core.Starling;
                 }, 1);
             }
         }
-
+        
         private function processRawAsset(name:String, rawAsset:Object, options:TextureOptions,
                                          xmls:Vector.<XML>, onProgress:Function, onComplete:Function):void
         {
@@ -828,7 +827,7 @@ import starling.core.Starling;
                 var bytes:ByteArray;
                 var object:Object = null;
                 var xml:XML = null;
-
+                
                 // the 'current' instance might have changed by now
                 // if we're running in a set-up with multiple instances.
                 _starling.makeCurrent();
@@ -1101,7 +1100,7 @@ import starling.core.Starling;
                         loaderInfo.addEventListener(Event.COMPLETE, onLoaderComplete);
                         loader.loadBytes(bytes, loaderContext);
                         break;
-                    default: // any XML / JSON / binary data
+                    default: // any XML / JSON / binary data 
                         complete(bytes);
                         break;
                 }
@@ -1240,7 +1239,7 @@ import starling.core.Starling;
             out.sort(Array.CASEINSENSITIVE);
             return out;
         }
-        
+
         protected function getHttpHeader(headers:Array, headerName:String):String
         {
             if (headers)
@@ -1303,7 +1302,7 @@ import starling.core.Starling;
          *  used. @default false */
         public function get useMipMaps():Boolean { return _defaultTextureOptions.mipMapping; }
         public function set useMipMaps(value:Boolean):void { _defaultTextureOptions.mipMapping = value; }
-
+        
         /** Textures that are created from Bitmaps or ATF files will have the scale factor
          *  assigned here. @default 1 */
         public function get scaleFactor():Number { return _defaultTextureOptions.scale; }
