@@ -17,7 +17,6 @@ import flash.geom.Matrix3D;
 import flash.geom.Point;
 import flash.geom.Rectangle;
 import flash.geom.Vector3D;
-import flash.utils.Endian;
 
 import avm2.intrinsics.memory.lf32;
 import avm2.intrinsics.memory.li32;
@@ -32,6 +31,7 @@ import plexonic.memory.FastByteArray;
 
 import starling.core.Starling;
 import starling.errors.MissingContextError;
+import starling.events.Event;
 import starling.styles.MeshStyle;
 import starling.utils.MathUtil;
 import starling.utils.MatrixUtil;
@@ -169,7 +169,12 @@ public class VertexData {
         _premultipliedAlpha = true;
 
         _rawData = FastByteArray.create(initialCapacity * _vertexSize);
+        _rawData.addEventListener(FastByteArray.EVENT_HEAP_OFFSET_UPDATED, heapOffsetUpdatedHandler)
         _rawData.length = 0; // changes length, but not memory!
+        _heapOffset = _rawData.offset;
+    }
+
+    private function heapOffsetUpdatedHandler(event:starling.events.Event):void {
         _heapOffset = _rawData.offset;
     }
 
@@ -177,6 +182,7 @@ public class VertexData {
     public function clear():void {
         if (_rawData) {
             _rawData.dispose();
+            _rawData.removeEventListener(FastByteArray.EVENT_HEAP_OFFSET_UPDATED, heapOffsetUpdatedHandler);
             _rawData = null;
         }
         _numVertices = 0;
@@ -965,9 +971,8 @@ public class VertexData {
         return _format;
     }
 
-        public function set format(value:VertexDataFormat):void
-        {
-            if (_format == value) return;
+    public function set format(value:VertexDataFormat):void {
+        if (_format == value) return;
 
         var a:int, i:int;
         var srcVertexSize:int = _format.vertexSize;
@@ -1000,11 +1005,11 @@ public class VertexData {
         }
 
 
-            if (value.vertexSize > _format.vertexSize)
-                _rawData.clear(); // avoid 4k blowup
+        if (value.vertexSize > _format.vertexSize)
+            _rawData.clear(); // avoid 4k blowup
 
-            FastByteArray.switchMemory(_rawData, sBytes);
-            _heapOffset = _rawData.offset;
+        FastByteArray.switchMemory(_rawData, sBytes);
+        _heapOffset = _rawData.offset;
 
         _format = value;
         _attributes = _format.attributes;
