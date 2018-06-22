@@ -25,6 +25,8 @@ import avm2.intrinsics.memory.sf32;
 import avm2.intrinsics.memory.si32;
 import avm2.intrinsics.memory.si8;
 
+import flash.utils.ByteArray;
+
 import plexonic.bugtracker.BugTrackerDataProvider;
 
 import plexonic.memory.FastByteArray;
@@ -204,21 +206,9 @@ public class VertexData implements IHeapOwner {
         if (targetBytes.length < destinationEndPosition) {
             targetBytes.length = destinationEndPosition;
         }
-
-        var heapAddress:uint = targetBytes.getHeapAddress(targetPos);
-        var sourceHeapAddress:uint = sourceBytes.getHeapAddress(sourcePos);
-
-        var byteCount:int = length % 4;
-        var sourceEndPosition:uint = sourceBytes.getHeapAddress(sourcePos + byteCount);
-        while (sourceHeapAddress < sourceEndPosition) {
-            si8(li8(sourceHeapAddress++), heapAddress++);
-        }
-        sourceEndPosition = sourceBytes.getHeapAddress(sourcePos + length);
-        while (sourceHeapAddress < sourceEndPosition) {
-            si32(li32(sourceHeapAddress), heapAddress);
-            heapAddress += 4;
-            sourceHeapAddress += 4;
-        }
+        var heap:ByteArray = targetBytes.heap;
+        heap.position = targetBytes.getHeapAddress(targetPos);
+        heap.writeBytes(heap, sourceBytes.getHeapAddress(sourcePos), length);
     }
 
     /** Copies the vertex data (or a range of it, defined by 'vertexID' and 'numVertices')
