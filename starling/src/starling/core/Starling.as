@@ -300,6 +300,7 @@ package starling.core
             stage.addEventListener(KeyboardEvent.KEY_UP, onKey, false, 0, true);
             stage.addEventListener(Event.RESIZE, onResize, false, 0, true);
             stage.addEventListener(Event.MOUSE_LEAVE, onMouseLeave, false, 0, true);
+            stage.addEventListener(Event.ACTIVATE, onActivate, false, 0, true);
 
             stage3D.addEventListener(Event.CONTEXT3D_CREATE, onContextCreated, false, 10, true);
             stage3D.addEventListener(ErrorEvent.ERROR, onStage3DError, false, 10, true);
@@ -546,9 +547,6 @@ package starling.core
         { 
             _started = _rendering = true;
             _frameTimestamp = getTimer() / 1000.0;
-
-            // mainly for Android: force redraw when app moves into foreground
-            setTimeout(setRequiresRedraw, 100);
         }
         
         /** Stops all logic and input processing, effectively freezing the app in its current state.
@@ -620,6 +618,15 @@ package starling.core
             }
 
             updateNativeOverlay();
+        }
+
+        private function onActivate(event:Event):void
+        {
+            // with 'skipUnchangedFrames' enabled, a forced redraw is required when the app
+            // is restored on some platforms (namely Windows with BASELINE_CONSTRAINED profile
+            // and some Android versions).
+
+            setTimeout(setRequiresRedraw, 100);
         }
         
         private function onKey(event:KeyboardEvent):void
